@@ -22,6 +22,31 @@ function formatDate(value: string) {
 export default function Home() {
  const [category,setCategory] = useState("All");
  const [query,setQuery] = useState("");
+ const [liveNews,setLiveNews] = useState<LiveArticle[]>([]);
+ const [newsLoading,setNewsLoading] = useState(true);
+ const [newsError,setNewsError] = useState("");
+
+ useEffect(() => {
+  let cancelled = false;
+  async function loadNews() {
+   try {
+    const response = await fetch("/api/news");
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Unable to load live headlines.");
+    if (!cancelled) {
+     setLiveNews(Array.isArray(data.articles) ? data.articles : []);
+     setNewsError("");
+    }
+   } catch (error) {
+    if (!cancelled) setNewsError(error instanceof Error ? error.message : "Unable to load live headlines.");
+   } finally {
+    if (!cancelled) setNewsLoading(false);
+   }
+  }
+  loadNews();
+  return () => { cancelled = true; };
+ }, []);
+
  const filtered = useMemo(() => stories.filter(s => (category==="All" || s.category===category) && (s.title+" "+s.excerpt+" "+s.category).toLowerCase().includes(query.toLowerCase())),[category,query]);
  return <>
   <div className="topline"><div className="container topline-inner"><span>GLOBAL FINANCE • BUSINESS • ECONOMY</span><span>Finance World • Independent financial journalism</span></div></div>
