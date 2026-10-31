@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Clock3, Search, TrendingUp } from "lucide-react";
 
 type Story = { category: string; title: string; excerpt: string; time: string; read: string; tone: string; tag: string };
@@ -13,6 +13,11 @@ const stories: Story[] = [
  {category:"Banking",title:"How banks are responding to a changing rate environment",excerpt:"Lenders are balancing deposit competition, credit quality and the outlook for borrowing demand.",time:"Oct 28",read:"4 min read",tone:"business",tag:"BANKING"}
 ];
 const categories = ["All","Markets","Economy","Business","Crypto","Banking"];
+type LiveArticle = { title: string; url: string; domain: string; publishedAt: string; image: string | null };
+function formatDate(value: string) {
+ const match = value.match(/^(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})/);
+ return match ? `${match[3]}/${match[2]}/${match[1]} ${match[4]}:${match[5]} UTC` : value;
+}
 
 export default function Home() {
  const [category,setCategory] = useState("All");
@@ -32,7 +37,12 @@ export default function Home() {
     <article className="hero-main"><span className="pill">The daily briefing</span><h1>Understand the markets. See the bigger picture.</h1><p>Global finance, business and economic developments — explained with context so you can make sense of what moves the world.</p><div className="meta"><span>FINANCE WORLD EDITORS</span><span>•</span><span><Clock3 size={12} style={{display:"inline",verticalAlign:"middle"}}/> 5 min read</span></div></article>
     <div className="hero-side"><article className="side-story"><div><span className="pill">World economy</span><h2>Beyond the headlines: indicators shaping the global outlook</h2></div><div className="meta">ANALYSIS • 6 MIN READ</div></article><article className="side-story"><div><span className="pill">Investor toolkit</span><h2>Five financial concepts worth understanding before you invest</h2></div><div className="meta">EXPLAINER • 4 MIN READ</div></article></div>
    </section>
-   <div className="section-head" id="latest"><div><div className="eyebrow">Fresh perspectives</div><h2>Latest stories</h2><p>News and explainers across the global financial landscape.</p></div><span className="meta">EDITORIAL DESK</span></div>
+   <section className="live-news" id="latest" style={{marginTop:42,marginBottom:38}}>
+    <div className="section-head"><div><div className="eyebrow">Updated from global publishers</div><h2>Live financial headlines</h2><p>Headlines link to their original publishers. Read the source before relying on a claim.</p></div><span className="pill">GDELT news feed</span></div>
+    {newsLoading ? <p className="meta">Loading the latest headlines…</p> : newsError ? <p className="meta">{newsError}</p> : liveNews.length ? <div className="news-grid">{liveNews.slice(0,12).map((article,index)=><article className="news-card" key={article.url}><div className={"news-image "+["market","economy","business","crypto"][index%4]}>{article.domain || "GLOBAL NEWS"}</div><div className="news-copy"><span className="pill">SOURCE HEADLINE</span><h3><a href={article.url} target="_blank" rel="noopener noreferrer">{article.title}</a></h3><div className="meta"><span>{article.domain}</span><span>•</span><span>{formatDate(article.publishedAt)}</span></div></div></article>)}</div> : <p className="meta">No matching headlines were returned right now.</p>}
+    <p className="meta" style={{marginTop:14}}>This is an automated news discovery feed, not editorial verification. Finance World has not independently fact-checked these articles.</p>
+   </section>
+   <div className="section-head" id="editorial-samples"><div><div className="eyebrow">Fresh perspectives</div><h2>Explore our editorial topics</h2><p>Sample layout stories while the newsroom and publishing workflow are being built.</p></div><span className="meta">EDITORIAL DESK</span></div>
    <div className="content-grid"><section><div className="filters">{categories.map(c=><button key={c} className={category===c?"filter active":"filter"} onClick={()=>setCategory(c)}>{c}</button>)}</div>
     {filtered.length ? <div className="news-grid">{filtered.map(s=><article className="news-card" key={s.title}><div className={"news-image "+s.tone}>{s.tag}</div><div className="news-copy"><span className="pill">{s.category}</span><h3>{s.title}</h3><p>{s.excerpt}</p><div className="meta"><span>{s.time}</span><span>•</span><span>{s.read}</span></div></div></article>)}</div> : <p>No stories match your search. Try another keyword.</p>}
    </section>
