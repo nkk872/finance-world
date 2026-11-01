@@ -13,7 +13,7 @@ type SourceArticle = {
 
 function isAuthorized(request: NextRequest) {
   const expected = process.env.NEWSROOM_ADMIN_TOKEN;
-  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const supplied = request.headers.get("authorization")?.replace(/^Bearer\\s+/i, "");
   if (!expected || !supplied) return false;
   const a = Buffer.from(expected);
   const b = Buffer.from(supplied);
@@ -125,7 +125,7 @@ Return valid JSON only, matching this shape:
 Source headlines:
 ${JSON.stringify(sources, null, 2)}`;
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": geminiApiKey },
       body: JSON.stringify({
