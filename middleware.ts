@@ -1,24 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
 
 export function middleware(request: NextRequest) {
-  const secret = process.env.NEWSROOM_ADMIN_TOKEN;
-  const header = request.headers.get("authorization") ?? "";
-  const match = header.match(/^Basic\s+(.+)$/i);
+  const expected = process.env.NEWSROOM_ADMIN_TOKEN;
+  const authorization = request.headers.get("authorization") ?? "";
+  const match = authorization.match(/^Basic\s+(.+)$/i);
   let supplied = "";
   if (match) {
     try {
       const decoded = atob(match[1]);
-      supplied = decoded.slice(decoded.indexOf(":") + 1);
+      const separator = decoded.indexOf(":");
+      supplied = separator >= 0 ? decoded.slice(separator + 1) : "";
     } catch {}
   }
-  const expectedBuffer = Buffer.from(secret ?? "");
-  const suppliedBuffer = Buffer.from(supplied);
-  const authorized = Boolean(secret && match && expectedBuffer.length === suppliedBuffer.length && timingSafeEqual(expectedBuffer, suppliedBuffer));
-  if (authorized) return NextResponse.next();
-  return new NextResponse("Owner login required.", {
+  if (expected && supplied && supplied === expected) {
+    return NextResponse.next();
+  }
+  return new NextResponse("Owner login required. Sign in with your owner credentials.", {
     status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="Finance World Owner", charset="UTF-8"', "Cache-Control": "no-store" },
+    headers: {
+      "WWW-Authenticate": 'Basic realm="Finance World Owner", charset="UTF-8"',
+      "Cache-Control": "no-store",
+    },
   });
 }
 
