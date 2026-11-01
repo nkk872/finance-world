@@ -9,23 +9,30 @@ function decodeXml(value: string) {
   return value.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 }
 
+function tagText(block: string, tag: string) {
+  const match = block.match(new RegExp("<" + tag + "(?:\\s[^>]*)?>([\\s\\S]*?)</" + tag + ">","i"));
+  return match ? decodeXml(match[1].replace(/<!\[CDATA\[|\]\]>/g, "").trim()) : "";
+}
+
+function cleanPublisher(value: string) {
+  return value.replace(/^www\./i, "").trim();
+}
+
 async function fromGoogleNews(): Promise<Article[]> {
   const url = "https://news.google.com/rss/search?q=finance+OR+stock+market+OR+economy+OR+banking+OR+cryptocurrency&hl=en-US&gl=US&ceid=US:en";
   const response = await fetch(url, { headers: { Accept: "application/rss+xml, application/xml", "User-Agent": "FinanceWorld/1.0" }, cache: "no-store", signal: AbortSignal.timeout(12000) });
   if (!response.ok) throw new Error("Google News RSS request failed.");
   const xml = await response.text();
   return xml.split("<item>").slice(1).map(block => block.split("</item>")[0]).slice(0, 30).map((block): Article | null => {
-    const read = (tag: string) => {
-      const start = block.indexOf("<" + tag + ">");
-      const end = block.indexOf("</" + tag + ">", start + tag.length + 2);
-      return start < 0 || end < 0 ? "" : decodeXml(block.slice(start + tag.length + 2, end).trim());
-    };
-    const title = read("title");
-    const url = read("link");
-    if (!title || !url) return null;
-    let domain = "news.google.com";
-    try { domain = new URL(url).hostname; } catch {}
-    return { title, url, domain, publishedAt: read("pubDate"), image: null };
+    const title = tagText(block, "title");
+    const articleUrl = tagText(block, "link");
+    if (!title || !articleUrl) return null;
+    const publisherMatch = block.match(/<source(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/source>/i);
+    let domain = publisherMatch ? cleanPublisher(decodeXml(publisherMatch[1].trim())) : "";
+    if (!domain) {
+      try { domain = new URL(articleUrl).hostname; } catch { domain = "Unknown publisher"; }
+    }
+    return { title, url: articleUrl, domain, publishedAt: tagText(block, "pubDate"), image: null };
   }).filter((item): item is Article => item !== null);
 }
 
@@ -35,7 +42,7 @@ export async function GET() {
     const response = await fetch("https://api.gdeltproject.org/api/v2/doc/doc?" + params.toString(), { headers: { Accept: "application/json", "User-Agent": "FinanceWorld/1.0" }, cache: "no-store", signal: AbortSignal.timeout(12000) });
     if (response.ok) {
       const payload = await response.json();
-      const articles = ((payload.articles ?? []) as GdeltArticle[]).filter(item => item.title && item.url).map(item => ({ title: item.title!, url: item.url!, domain: item.domain ?? new URL(item.url!).hostname, publishedAt: item.seendate ?? "", image: item.socialimage ?? null }));
+      const articles = ((payload.articles ?? []) as GdeltArticle[]).filter(item => item.title && item.url).map(item => ({ title: item.title!, url: item.url!, domain: cleanPublisher(item.domain ?? new URL(item.url!).hostname), publishedAt: item.seendate ?? "", image: item.socialimage ?? null }));
       if (articles.length) return NextResponse.json({ articles, updatedAt: new Date().toISOString(), source: "GDELT" }, { headers: { "Cache-Control": "s-maxage=900, stale-while-revalidate=3600" } });
     }
   } catch (error) {
