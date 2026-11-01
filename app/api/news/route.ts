@@ -14,7 +14,7 @@ async function fromGoogleNews(): Promise<Article[]> {
   const response = await fetch(url, { headers: { Accept: "application/rss+xml, application/xml", "User-Agent": "FinanceWorld/1.0" }, cache: "no-store", signal: AbortSignal.timeout(12000) });
   if (!response.ok) throw new Error("Google News RSS request failed.");
   const xml = await response.text();
-  return xml.split("<item>").slice(1).map(block => block.split("</item>")[0]).slice(0, 30).map(block => {
+  return xml.split("<item>").slice(1).map(block => block.split("</item>")[0]).slice(0, 30).map((block): Article | null => {
     const read = (tag: string) => {
       const start = block.indexOf("<" + tag + ">");
       const end = block.indexOf("</" + tag + ">", start + tag.length + 2);
