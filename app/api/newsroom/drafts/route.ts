@@ -53,8 +53,10 @@ export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Access denied. Check your newsroom access token." }, { status: 401 });
   }
-  if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: "GEMINI_API_KEY is missing from the server environment." }, { status: 503 });
+  // Accept the exact existing Vercel variable name as well as the conventional uppercase name.
+  const geminiApiKey = process.env.GEMINI_API_KEY ?? process.env.Gemini_Api_key;
+  if (!geminiApiKey) {
+    return NextResponse.json({ error: "Gemini API key is missing. Check the GEMINI_API_KEY environment variable in Vercel." }, { status: 503 });
   }
 
   try {
@@ -81,7 +83,7 @@ ${JSON.stringify(sources, null, 2)}`;
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": process.env.GEMINI_API_KEY,
+        "x-goog-api-key": geminiApiKey,
       },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
