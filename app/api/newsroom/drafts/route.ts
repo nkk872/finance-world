@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     const prompt = `You are the careful newsroom assistant for Finance World, an international finance publication.
-Create exactly 3 concise, publication-quality article DRAFTS based only on the source headlines and metadata below.
+Create exactly 3 SHORT article DRAFTS based only on the source headlines and metadata below. Keep each body to 2 short paragraphs and the entire JSON under 3000 tokens.
 Important rules:
 - Do not invent facts, quotes, numbers, dates, company actions, causes, or market movements.
 - A headline is not proof of the full story. Use cautious language and clearly label anything that needs reporter verification.
@@ -130,7 +130,7 @@ ${JSON.stringify(sources, null, 2)}`;
       headers: { "Content-Type": "application/json", "x-goog-api-key": geminiApiKey },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.2, maxOutputTokens: 2200, responseMimeType: "application/json" },
+        generationConfig: { temperature: 0.2, maxOutputTokens: 4000, responseMimeType: "application/json" },
       }),
       cache: "no-store",
       signal: AbortSignal.timeout(25000),
@@ -146,7 +146,7 @@ ${JSON.stringify(sources, null, 2)}`;
     const generatedText = result.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("");
     if (!generatedText) throw new Error("Gemini returned an empty response.");
 
-    const parsed = JSON.parse(generatedText);
+    const cleanedText = generatedText.replace(/^```(?:json)?\\s*/i, "").replace(/\\s*```$/, "").trim();\n    const parsed = JSON.parse(cleanedText);
     const allowedUrls = new Set(sources.map((source) => source.url));
     const drafts = (Array.isArray(parsed.drafts) ? parsed.drafts : []).slice(0, 3).map((draft: Record<string, unknown>) => ({
       title: String(draft.title ?? "").slice(0, 180),
