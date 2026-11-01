@@ -13,7 +13,7 @@ type SourceArticle = {
 
 function isAuthorized(request: NextRequest) {
   const expected = process.env.NEWSROOM_ADMIN_TOKEN;
-  const supplied = request.headers.get("authorization")?.replace(/^Bearer\\s+/i, "");
+  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!expected || !supplied) return false;
   const a = Buffer.from(expected);
   const b = Buffer.from(supplied);
