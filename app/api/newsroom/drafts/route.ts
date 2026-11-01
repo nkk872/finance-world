@@ -38,10 +38,15 @@ async function getGoogleNewsArticles(): Promise<SourceArticle[]> {
   });
   if (!response.ok) throw new Error("Google News RSS is unavailable.");
   const xml = await response.text();
-  const items = [...xml.matchAll(/<item>([\\s\\S]*?)<\\/item>/gi)].slice(0, 18);
-  return items.map((match) => {
-    const block = match[1];
-    const read = (tag: string) => decodeXml(block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i"))?.[1]?.trim() ?? "");
+  const items = xml.split("<item>").slice(1).map((part) => part.split("</item>")[0]).slice(0, 18);
+  return items.map((block) => {
+    const read = (tag: string) => {
+      const open = `<${tag}>`;
+      const close = `</${tag}>`;
+      const start = block.indexOf(open);
+      const end = start < 0 ? -1 : block.indexOf(close, start + open.length);
+      return start < 0 || end < 0 ? "" : decodeXml(block.slice(start + open.length, end).trim());
+    };
     const title = read("title");
     const url = read("link");
     const publishedAt = read("pubDate");
