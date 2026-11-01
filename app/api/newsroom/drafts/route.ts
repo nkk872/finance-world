@@ -13,11 +13,43 @@ type SourceArticle = {
 
 function isAuthorized(request: NextRequest) {
   const expected = process.env.NEWSROOM_ADMIN_TOKEN;
-  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+  const supplied = request.headers.get("authorization")?.replace(/^Bearer\\s+/i, "");
   if (!expected || !supplied) return false;
   const a = Buffer.from(expected);
   const b = Buffer.from(supplied);
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function decodeXml(value: string) {
+  return value
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">");
+}
+
+async function getGoogleNewsArticles(): Promise<SourceArticle[]> {
+  const url = "https://news.google.com/rss/search?q=finance+OR+stock+market+OR+economy+OR+banking+OR+cryptocurrency&hl=en-US&gl=US&ceid=US:en";
+  const response = await fetch(url, {
+    headers: { Accept: "application/rss+xml, application/xml, text/xml", "User-Agent": "FinanceWorld/1.0" },
+    cache: "no-store",
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) throw new Error("Google News RSS is unavailable.");
+  const xml = await response.text();
+  const items = [...xml.matchAll(/<item>([\\s\\S]*?)<\\/item>/gi)].slice(0, 18);
+  return items.map((match) => {
+    const block = match[1];
+    const read = (tag: string) => decodeXml(block.match(new RegExp(`<${tag}>([\\s\\S]*?)<\\/${tag}>`, "i"))?.[1]?.trim() ?? "");
+    const title = read("title");
+    const url = read("link");
+    const publishedAt = read("pubDate");
+    if (!title || !url) return null;
+    let domain = "news.google.com";
+    try { domain = new URL(url).hostname; } catch {}
+    return { title, url, domain, publishedAt };
+  }).filter((item): item is SourceArticle => item !== null);
 }
 
 async function getSourceArticles(): Promise<SourceArticle[]> {
@@ -29,21 +61,31 @@ async function getSourceArticles(): Promise<SourceArticle[]> {
     timespan: "24h",
     sort: "DateDesc",
   });
-  const response = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`, {
-    headers: { Accept: "application/json", "User-Agent": "FinanceWorld/1.0" },
-    cache: "no-store",
-  });
-  if (!response.ok) throw new Error("The news source is temporarily unavailable.");
-  const payload = await response.json();
-  return ((payload.articles ?? []) as Array<{ title?: string; url?: string; domain?: string; seendate?: string }>)
-    .filter((item) => item.title && item.url)
-    .slice(0, 12)
-    .map((item) => ({
-      title: item.title!,
-      url: item.url!,
-      domain: item.domain ?? new URL(item.url!).hostname,
-      publishedAt: item.seendate ?? "",
-    }));
+  try {
+    const response = await fetch(`https://api.gdeltproject.org/api/v2/doc/doc?${params.toString()}`, {
+      headers: { Accept: "application/json", "User-Agent": "FinanceWorld/1.0" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(12000),
+    });
+    if (response.ok) {
+      const payload = await response.json();
+      const articles = ((payload.articles ?? []) as Array<{ title?: string; url?: string; domain?: string; seendate?: string }>)
+        .filter((item) => item.title && item.url)
+        .slice(0, 12)
+        .map((item) => ({
+          title: item.title!,
+          url: item.url!,
+          domain: item.domain ?? new URL(item.url!).hostname,
+          publishedAt: item.seendate ?? "",
+        }));
+      if (articles.length >= 3) return articles;
+    }
+  } catch (error) {
+    console.warn("GDELT source unavailable; trying Google News RSS fallback:", error);
+  }
+  const fallback = await getGoogleNewsArticles();
+  if (fallback.length < 3) throw new Error("Both news sources returned too few articles.");
+  return fallback;
 }
 
 export async function POST(request: NextRequest) {
@@ -53,7 +95,6 @@ export async function POST(request: NextRequest) {
   if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Access denied. Check your newsroom access token." }, { status: 401 });
   }
-  // Accept the exact existing Vercel variable name as well as the conventional uppercase name.
   const geminiApiKey = process.env.GEMINI_API_KEY ?? process.env.Gemini_Api_key;
   if (!geminiApiKey) {
     return NextResponse.json({ error: "Gemini API key is missing. Check the GEMINI_API_KEY environment variable in Vercel." }, { status: 503 });
@@ -81,10 +122,7 @@ ${JSON.stringify(sources, null, 2)}`;
 
     const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiApiKey,
-      },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": geminiApiKey },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.2, maxOutputTokens: 5000, responseMimeType: "application/json" },
