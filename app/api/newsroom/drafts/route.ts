@@ -146,7 +146,8 @@ ${JSON.stringify(sources, null, 2)}`;
     const generatedText = result.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("");
     if (!generatedText) throw new Error("Gemini returned an empty response.");
 
-    const cleanedText = generatedText.replace(/^```(?:json)?\\s*/i, "").replace(/\\s*```$/, "").trim();\n    const parsed = JSON.parse(cleanedText);
+    const cleanedText = generatedText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+    const parsed = JSON.parse(cleanedText);
     const allowedUrls = new Set(sources.map((source) => source.url));
     const drafts = (Array.isArray(parsed.drafts) ? parsed.drafts : []).slice(0, 3).map((draft: Record<string, unknown>) => ({
       title: String(draft.title ?? "").slice(0, 180),
