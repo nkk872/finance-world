@@ -28,7 +28,15 @@ export default function NewsroomAdminPage() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       });
-      const data = await response.json();
+      const responseText = await response.text();
+      let data: { error?: string; drafts?: Draft[]; generatedAt?: string };
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        throw new Error(response.status === 504
+          ? "The newsroom request timed out. Please try again."
+          : "The server returned an unexpected response. Please try again in a moment.");
+      }
       if (!response.ok) throw new Error(data.error || "Unable to generate drafts.");
       setDrafts(data.drafts ?? []);
       setGeneratedAt(data.generatedAt ?? "");
