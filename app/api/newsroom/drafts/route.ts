@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
-type SourceArticle = { title: string; url: string; domain: string; publishedAt: string };
+type Item = { title: string; url: string; source: string; publishedAt: string };
 
-function isAuthorized(request: NextRequest) {
+function authorized(request: NextRequest) {
   const expected = process.env.NEWSROOM_ADMIN_TOKEN;
   const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!expected || !supplied) return false;
@@ -14,119 +14,48 @@ function isAuthorized(request: NextRequest) {
   const b = Buffer.from(supplied);
   return a.length === b.length && timingSafeEqual(a, b);
 }
-function decodeXml(value: string) {
+function decode(value: string) {
   return value.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 }
-function readTag(block: string, tag: string) {
-  const start = block.indexOf("<" + tag);
-  const openEnd = start >= 0 ? block.indexOf(">", start) : -1;
-  const close = openEnd >= 0 ? block.indexOf("</" + tag + ">", openEnd) : -1;
-  return openEnd >= 0 && close > openEnd ? decodeXml(block.slice(openEnd + 1, close).replace(/<!\\[CDATA\\[|\\]\\]>/g, "").trim()) : "";
+function tag(block: string, name: string) {
+  const match = block.match(new RegExp("<" + name + "(?:\\s[^>]*)?>([\\s\\S]*?)</" + name + ">", "i"));
+  return match ? decode(match[1].replace(/<!\\[CDATA\\[|\\]\\]>/g, "").trim()) : "";
 }
-async function getRss(url: string, domain: string): Promise<SourceArticle[]> {
-  const response = await fetch(url, { headers: { Accept: "application/rss+xml, application/xml, text/xml", "User-Agent": "FinanceWorld/1.0" }, cache: "no-store", signal: AbortSignal.timeout(12000) });
-  if (!response.ok) throw new Error(domain + " feed returned " + response.status);
-  const xml = await response.text();
-  return xml.split("<item>").slice(1).map(item => item.split("</item>")[0]).slice(0, 20).map(block => ({
-    title: readTag(block, "title"),
-    url: readTag(block, "link"),
-    domain,
-    publishedAt: readTag(block, "pubDate"),
-  })).filter(item => item.title && item.url);
+async function rss(url: string, source: string): Promise<Item[]> {
+  const res = await fetch(url, { headers: { Accept: "application/rss+xml, application/xml, text/xml", "User-Agent": "FinanceWorld/1.0 (financial news reader)" }, cache: "no-store", signal: AbortSignal.timeout(9000) });
+  if (!res.ok) throw new Error(source + " returned " + res.status);
+  const xml = await res.text();
+  return xml.split("<item>").slice(1).map(x => x.split("</item>")[0]).slice(0, 25).map(block => ({
+    title: tag(block, "title"), url: tag(block, "link"), source, publishedAt: tag(block, "pubDate")
+  })).filter(x => x.title && x.url);
 }
-async function getSourceArticles(): Promise<SourceArticle[]> {
+async function gdelt(): Promise<Item[]> {
   const params = new URLSearchParams({
-    query: '(finance OR "stock market" OR economy OR banking OR cryptocurrency)',
-    mode: "ArtList", format: "json", maxrecords: "25", timespan: "24h", sort: "DateDesc",
+    query: '("stock market" OR stocks OR shares OR banking OR bank OR inflation OR "interest rates" OR economy OR finance OR earnings OR bonds OR cryptocurrency OR "central bank" OR investment OR "financial markets")',
+    mode: "ArtList", format: "json", maxrecords: "50", timespan: "24h", sort: "DateDesc"
   });
-  const results = await Promise.allSettled([
-    fetch("https://api.gdeltproject.org/api/v2/doc/doc?" + params.toString(), {
-      headers: { Accept: "application/json", "User-Agent": "FinanceWorld/1.0" },
-      cache: "no-store", signal: AbortSignal.timeout(12000),
-    }).then(async response => {
-      if (!response.ok) throw new Error("GDELT returned " + response.status);
-      const payload = await response.json();
-      return ((payload.articles ?? []) as Array<{ title?: string; url?: string; domain?: string; seendate?: string }>)
-        .filter(item => item.title && item.url)
-        .map(item => ({ title: item.title!, url: item.url!, domain: item.domain ?? new URL(item.url!).hostname, publishedAt: item.seendate ?? "" }));
-    }),
-    getRss("https://www.sec.gov/news/pressreleases.rss", "U.S. SEC"),
-    getRss("https://data.gdeltproject.org/gdeltv3/gal/feed.rss", "GDELT Global Article List"),
-  ]);
-  const articles = results.flatMap(result => result.status === "fulfilled" ? result.value : []);
-  const unique = Array.from(new Map(articles.map(article => [article.url, article])).values()).slice(0, 35);
-  if (unique.length < 3) throw new Error("News providers returned fewer than three usable headlines.");
-  return unique;
+  const res = await fetch("https://api.gdeltproject.org/api/v2/doc/doc?" + params.toString(), { headers: { Accept: "application/json", "User-Agent": "FinanceWorld/1.0" }, cache: "no-store", signal: AbortSignal.timeout(12000) });
+  if (!res.ok) throw new Error("GDELT returned " + res.status);
+  const data = await res.json();
+  return ((data.articles ?? []) as Array<{title?:string;url?:string;domain?:string;seendate?:string}>)
+    .filter(x => x.title && x.url)
+    .map(x => ({ title:x.title!, url:x.url!, source:x.domain || "GDELT", publishedAt:x.seendate || "" }));
 }
+const financialTerms = /\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|sec filing|securities|fund|trading|trade deficit|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price)\b/i;
 
 export async function POST(request: NextRequest) {
-  if (!process.env.NEWSROOM_ADMIN_TOKEN) {
-    return NextResponse.json({ error: "Newsroom security is not configured. Check NEWSROOM_ADMIN_TOKEN in Vercel." }, { status: 503 });
-  }
-  if (!isAuthorized(request)) {
-    return NextResponse.json({ error: "Access denied. Check your newsroom access token." }, { status: 401 });
-  }
-  const apiKey = process.env.GEMINI_API_KEY ?? process.env.Gemini_Api_key;
-  if (!apiKey) {
-    return NextResponse.json({ error: "Gemini API key is missing. Check the existing Gemini_Api_key setting in Vercel." }, { status: 503 });
-  }
-
-  try {
-    const sources = await getSourceArticles();
-    const prompt = `You are the careful newsroom assistant for Finance World, an international financial news publication.
-Write exactly 3 concise original article drafts using ONLY the source headlines and metadata below. Each draft has a headline, category, a one-sentence summary, a body of two short paragraphs (about 70-90 words total), and a source list.
-Never invent figures, quotes, dates, company actions, causes or market movements. A headline alone is not proof of the full story. Clearly say when a detail requires verification. No personal investment advice or buy/sell recommendations. Use only supplied source URLs.
-Return valid JSON only:
-{"drafts":[{"title":"...","category":"Markets|Economy|Business|Banking|Crypto","summary":"...","body":"...","sourceUrls":["https://..."],"editorChecks":["..."]}]}
-SOURCE HEADLINES:
-${JSON.stringify(sources.slice(0, 18))}`;
-
-    let response: Response | null = null;
-    for (const model of ["gemini-3.8-flash", "gemini-3.6-flash"]) {
-      response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 6000, responseMimeType: "application/json" },
-        }),
-        cache: "no-store",
-        signal: AbortSignal.timeout(35000),
-      });
-      if (response.ok) break;
-      const providerError = (await response.text()).slice(0, 500);
-      console.error("Gemini model request failed:", model, response.status, providerError);
-      if (![404, 429, 500, 502, 503].includes(response.status)) break;
-    }
-    if (!response || !response.ok) {
-      if (response?.status === 401 || response?.status === 403) {
-        return NextResponse.json({ error: "Gemini rejected the saved API key. Check its status and API access in Google AI Studio." }, { status: 502 });
-      }
-      if (response?.status === 429) {
-        return NextResponse.json({ error: "Gemini rate limit or free quota reached. Wait a little and try again." }, { status: 502 });
-      }
-      return NextResponse.json({ error: "Gemini is temporarily unavailable. Please try again shortly." }, { status: 502 });
-    }
-
-    const result = await response.json();
-    const generatedText = result.candidates?.[0]?.content?.parts?.map((part: { text?: string }) => part.text ?? "").join("");
-    if (!generatedText) throw new Error("Gemini returned an empty response.");
-    const cleaned = generatedText.trim().replaceAll("```json", "").replaceAll("```", "").trim();
-    const parsed = JSON.parse(cleaned);
-    const allowedUrls = new Set(sources.map(source => source.url));
-    const drafts = (Array.isArray(parsed.drafts) ? parsed.drafts : []).slice(0, 3).map((draft: Record<string, unknown>) => ({
-      title: String(draft.title ?? "").slice(0, 180),
-      category: String(draft.category ?? "Business").slice(0, 40),
-      summary: String(draft.summary ?? "").slice(0, 500),
-      body: String(draft.body ?? "").slice(0, 10000),
-      sourceUrls: Array.isArray(draft.sourceUrls) ? draft.sourceUrls.filter((url: unknown) => typeof url === "string" && allowedUrls.has(url)) : [],
-      editorChecks: Array.isArray(draft.editorChecks) ? draft.editorChecks.map(String).slice(0, 8) : [],
-      status: "Needs editor review" as const,
-    })).filter((draft: { title: string; body: string }) => draft.title && draft.body);
-    if (!drafts.length) throw new Error("AI response did not contain usable drafts.");
-    return NextResponse.json({ drafts, generatedAt: new Date().toISOString(), sourceCount: sources.length });
-  } catch (error) {
-    console.error("Newsroom draft generation failed:", error);
-    return NextResponse.json({ error: "Could not prepare drafts. Check the news providers and Gemini service, then try again." }, { status: 500 });
-  }
+  if (!process.env.NEWSROOM_ADMIN_TOKEN) return NextResponse.json({ error: "Newsroom access is not configured." }, { status: 503 });
+  if (!authorized(request)) return NextResponse.json({ error: "Access denied. Check your newsroom access token." }, { status: 401 });
+  const providers = [
+    () => gdelt(),
+    () => rss("https://www.sec.gov/news/pressreleases.rss", "U.S. SEC"),
+    () => rss("https://www.federalreserve.gov/feeds/press_all.xml", "Federal Reserve"),
+    () => rss("https://www.ecb.europa.eu/rss/press.html", "European Central Bank")
+  ];
+  const results = await Promise.allSettled(providers.map(fn => fn()));
+  const items = results.flatMap(x => x.status === "fulfilled" ? x.value : []);
+  const unique = Array.from(new Map(items.filter(x => financialTerms.test(x.title)).map(x => [x.url, x])).values())
+    .sort((a,b) => Date.parse(b.publishedAt || "") - Date.parse(a.publishedAt || "")).slice(0, 60);
+  if (!unique.length) return NextResponse.json({ error: "Financial news sources are temporarily unavailable. Please refresh shortly." }, { status: 502 });
+  return NextResponse.json({ articles: unique, updatedAt: new Date().toISOString(), providers: Array.from(new Set(unique.map(x => x.source))) });
 }
