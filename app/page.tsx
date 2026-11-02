@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Clock3, Search, TrendingUp } from "lucide-react";
+import MarketTicker from "../components/MarketTicker";
 
 type Article = { title:string; url:string; domain:string; publishedAt:string; image:string|null; summary:string; category:string; provider:string; region?:string };
 const categories=["All","World Finance","Economy","Banking","Markets","Business","Crypto","Forex","Commodities","Real Estate","Fintech"];
@@ -25,7 +26,7 @@ export default function Home(){
   <div className="topline"><div className="container topline-inner"><span>GLOBAL FINANCE • BUSINESS • ECONOMY</span><span>Finance World • Independent financial coverage</span></div></div>
   <header className="masthead"><div className="container masthead-inner"><a className="brand" href="/"><span className="brand-mark">F</span> FINANCE<span className="brand-word">WORLD</span></a><nav className="nav"><a href="#latest">Latest</a><a href="#latest">Markets</a><a href="#latest">Business</a><a href="#latest">Economy</a><a href="#latest">Crypto</a></nav><div className="actions"><label className="search"><Search size={14}/><input aria-label="Search stories" placeholder=" Search stories" value={query} onChange={e=>setQuery(e.target.value)} style={{border:0,outline:0,width:105}}/></label><a className="subscribe" href="#about">About <ArrowUpRight size={13}/></a></div></div></header>
   <div className="marketbar"><div className="container market-inner"><span className="market-label"><TrendingUp size={14}/> Financial desk</span><span className="market-item"><b>GLOBAL</b><span>Markets & economy</span></span><span className="market-item"><b>UPDATED</b><span>Every 10 minutes</span></span><span className="market-item"><b>REPORTING</b><span>Source-attributed</span></span></div></div>
-  <main className="container page">
+  <main className="container page">\n   <MarketTicker />
    <div className="eyebrow">Clarity in a changing financial world</div>
    <section className="hero"><article className="hero-main"><span className="pill">Global finance briefing</span><h1>Understand the markets. See the bigger picture.</h1><p>Financial news, market developments and clear explanations — brought together in one place.</p><div className="meta"><span>FINANCE WORLD</span><span>•</span><span><Clock3 size={12}/> Latest coverage</span></div></article><div className="hero-side"><article className="side-story"><div><span className="pill">Markets</span><h2>Track the stories moving global markets</h2></div><div className="meta">STOCKS • BONDS • CURRENCIES</div></article><article className="side-story"><div><span className="pill">Economy</span><h2>Understand rates, inflation and business</h2></div><div className="meta">ECONOMY • BANKING • BUSINESS</div></article></div></section>
    <section id="latest" style={{marginTop:42,marginBottom:38}}>
