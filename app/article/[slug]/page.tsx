@@ -4,7 +4,7 @@ import { ArrowLeft, Clock3, ExternalLink, ShieldCheck, TrendingUp } from "lucide
 type Props={params:Promise<{slug:string}>;searchParams:Promise<{title?:string;source?:string;url?:string;publishedAt?:string;image?:string;summary?:string;category?:string}>};
 function safeUrl(value?:string){if(!value)return null;try{const u=new URL(value);return u.protocol==="https:"||u.protocol==="http:"?u.toString():null;}catch{return null;}}
 function plain(value:string){return value.replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g," ").trim();}
-function paragraphs(value:string){return plain(value).split(/(?<=[.!?])\\s+(?=[A-Z0-9])/).filter(Boolean);}
+function paragraphs(value:string){return plain(value).split(/(?<=[.!?])\s+(?=[A-Z0-9])/).filter(Boolean);}
 async function fetchOfficialFullText(url:string|null){
  if(!url)return "";
  try{
@@ -13,9 +13,9 @@ async function fetchOfficialFullText(url:string|null){
   const response=await fetch(u.toString(),{headers:{"User-Agent":"FinanceWorld/1.0 (source-attributed financial reporting)","Accept":"text/html"},signal:AbortSignal.timeout(5000),next:{revalidate:1800}});
   if(!response.ok)return "";
   const html=await response.text();
-  const article=html.match(/<article[\\s\\S]*?<\\/article>/i)?.[0]||html.match(/<main[\\s\\S]*?<\\/main>/i)?.[0]||"";
+  const article=html.match(/<article[\s\S]*?<\/article>/i)?.[0]||html.match(/<main[\s\S]*?<\/main>/i)?.[0]||"";
   if(!article)return "";
-  return article.replace(/<(script|style|nav|footer|header)[^>]*>[\\s\\S]*?<\\/\\1>/gi," ").replace(/<br\\s*\\/?>(?=.)/gi,"\\n").replace(/<\\/(p|h[1-6]|li|div)>/gi,"\\n").replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&#x27;/g,"'").replace(/\\s+/g," ").trim().slice(0,24000);
+  return article.replace(/<(script|style|nav|footer|header)[^>]*>[\s\S]*?<\/\1>/gi," ").replace(/<br\s*\/?>/gi,"\n").replace(/<\/(p|h[1-6]|li|div)>/gi,"\n").replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&#x27;/g,"'").replace(/\s+/g," ").trim().slice(0,24000);
  }catch{return "";}
 }
 export default async function ArticlePage({searchParams}:Props){
