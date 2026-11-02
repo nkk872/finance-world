@@ -39,6 +39,6 @@ export default function Home(){
    </section>
    <section id="about" className="sidebar-card"><h3>About Finance World</h3><p>Finance World is an independent financial news and explainer website covering markets, business, banking, the economy and digital assets. We attribute external reporting and distinguish sourced facts from our own analysis.</p></section>
   </main>
-  <footer className="footer"><div className="container footer-inner"><div><div className="brand" style={{color:"white"}}><span className="brand-mark">F</span> FINANCE<span className="brand-word">WORLD</span></div><p>Your World. Your Markets. Your Money.</p></div><p>© 2026 Finance World. For information and education, not investment advice.</p></div></footer>
+  <footer className="footer"><div className="container footer-inner"><div><div className="brand" style={{color:"white"}}><span className="brand-mark">F</span> FINANCE<span className="brand-word">WORLD</span></div><p>Your World. Your Markets. Your Money.</p><nav aria-label="Footer links" style={{display:"flex",flexWrap:"wrap",gap:16,fontSize:12,marginTop:14}}><a href="/about">About Us</a><a href="/contact">Contact Us</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms &amp; Conditions</a></nav></div><p>© 2026 Finance World. For information and education, not investment advice.</p></div></footer>
  </>;
 }
