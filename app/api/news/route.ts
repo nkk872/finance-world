@@ -4,7 +4,7 @@ type Article={title:string;url:string;domain:string;publishedAt:string;image:str
 type GdeltArticle={title?:string;url?:string;domain?:string;seendate?:string;socialimage?:string};
 export const revalidate=600;
 
-function decodeXml(v:string){return v.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
+function decodeXml(v:string){return v.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(parseInt(n,10))).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
 function tagText(b:string,t:string){const m=b.match(new RegExp("<"+t+"(?:\\s[^>]*)?>([\\s\\S]*?)</"+t+">","i"));return m?decodeXml(m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ")):"";}
 function imageFrom(b:string){const a=[b.match(/<media:content[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<enclosure[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]];return a.find(v=>v&&/^https?:\/\//i.test(v))??null;}
 function categoryFor(title:string):string{const t=title.toLowerCase();
