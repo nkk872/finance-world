@@ -11,7 +11,8 @@ async function fetchOfficialArticle(url:string|null):Promise<{text:string;image:
  if(!url)return {text:"",image:null};
  try{
   const u=new URL(url);
-  const officialHosts=["sec.gov","federalreserve.gov","ecb.europa.eu","imf.org","bis.org","worldbank.org","bankofcanada.ca","rbi.org.in","treasury.gov","bls.gov","bea.gov","oecd.org","finance.gov.au","gov.uk"];\n  if(!officialHosts.some(host=>u.hostname===host||u.hostname.endsWith("."+host)))return {text:"",image:null};
+  const officialHosts=["sec.gov","federalreserve.gov","ecb.europa.eu","imf.org","bis.org","worldbank.org","bankofcanada.ca","rbi.org.in","treasury.gov","bls.gov","bea.gov","oecd.org","finance.gov.au","gov.uk"];
+  if(!officialHosts.some(host=>u.hostname===host||u.hostname.endsWith("."+host)))return {text:"",image:null};
   const response=await fetch(u.toString(),{headers:{"User-Agent":"FinanceWorld/1.0 (source-attributed financial reporting)","Accept":"text/html"},signal:AbortSignal.timeout(7000),next:{revalidate:1800}});
   if(!response.ok)return {text:"",image:null};
   const html=await response.text();
