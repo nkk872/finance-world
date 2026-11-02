@@ -20,13 +20,21 @@ export default function Home() {
 
   useEffect(() => {
     let active = true;
-    fetch("/api/news").then(async response => {
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "News feed is temporarily unavailable.");
-      if (active) setArticles(Array.isArray(data.articles) ? data.articles : []);
-    }).catch(err => { if (active) setError(err instanceof Error ? err.message : "News feed unavailable."); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
+    const loadNews = async () => {
+      try {
+        const response = await fetch("/api/news", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "News feed is temporarily unavailable.");
+        if (active) { setArticles(Array.isArray(data.articles) ? data.articles : []); setError(""); }
+      } catch (err) {
+        if (active) setError(err instanceof Error ? err.message : "News feed unavailable.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+    loadNews();
+    const refresh = setInterval(loadNews, 10 * 60 * 1000);
+    return () => { active = false; clearInterval(refresh); };
   }, []);
 
   const filtered = useMemo(() => articles.filter(article => {
