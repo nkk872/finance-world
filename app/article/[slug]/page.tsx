@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ArticleImage from "../../../components/ArticleImage";
 import { ArrowLeft, Clock3, ExternalLink, ShieldCheck, TrendingUp } from "lucide-react";
 
 type Props={params:Promise<{slug:string}>;searchParams:Promise<{title?:string;source?:string;url?:string;publishedAt?:string;image?:string;summary?:string;category?:string}>};
@@ -40,7 +41,7 @@ export default async function ArticlePage({searchParams}:Props){
     <div className="eyebrow">Finance World • {category}</div><div className="article-kicker">FINANCIAL NEWS REPORT</div>
     <h1>{title}</h1>
     <div className="article-byline"><span>Reporting source: <strong>{source.replace(/^www\./,"")}</strong></span>{published?<span><Clock3 size={14}/>{published}</span>:null}</div>
-    <><img className="article-cover" src={articleImage||fallbackImage(category)} alt={title} onError={e=>{const img=e.currentTarget;if(img.dataset.fallback==="1"){img.style.display="none";return;}img.dataset.fallback="1";img.src=fallbackImage(category);}}/>{!articleImage?<p className="meta">Illustrative category image — not a photograph from the original report.</p>:null}</>
+    <><ArticleImage className="article-cover" src={articleImage||fallbackImage(category)} fallback={fallbackImage(category)} alt={title}/>{!articleImage?<p className="meta">Illustrative category image — not a photograph from the original report.</p>:null}</>
     <section className="article-body">
      <h2>What happened</h2>
      {officialText?<p className="meta">Official public release • full source text reproduced with attribution</p>:null}
