@@ -42,8 +42,8 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
   return {title,url,domain:clean,publishedAt:tagText(b,"pubDate"),image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title)};
  }).filter((a):a is Article=>a!==null);
 }
-async function fromGdelt():Promise<Article[]>{
- const params=new URLSearchParams({query:'(finance OR "stock market" OR economy OR banking OR cryptocurrency OR inflation OR earnings OR forex OR commodities) sourcelang:english',mode:"ArtList",format:"json",maxrecords:"75",timespan:"48h",sort:"DateDesc"});
+async function fromGdelt(query:string):Promise<Article[]>{
+ const params=new URLSearchParams({query:query+" sourcelang:english",mode:"ArtList",format:"json",maxrecords:"250",timespan:"7d",sort:"DateDesc"});
  const response=await fetch("https://api.gdeltproject.org/api/v2/doc/doc?"+params,{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0"},cache:"no-store",signal:AbortSignal.timeout(5500)});
  if(!response.ok)throw new Error("GDELT failed: "+response.status);
  const payload=await response.json();
@@ -64,15 +64,47 @@ const sources=[
  ["https://www.business-standard.com/rss/markets-106.rss","Business Standard Markets"],
  ["https://www.business-standard.com/rss/finance-103.rss","Business Standard Finance"],
  ["https://www.scmp.com/rss/91/feed","South China Morning Post Business"],
- ["https://www.bankofcanada.ca/feed/press-releases/","Bank of Canada"]
+ ["https://www.bankofcanada.ca/feed/press-releases/","Bank of Canada"],
+ ["https://www.cnbc.com/id/10001147/device/rss/rss.html","CNBC World Markets"],
+ ["https://www.cnbc.com/id/100003114/device/rss/rss.html","CNBC Finance"],
+ ["https://www.cnbc.com/id/10000664/device/rss/rss.html","CNBC Economy"],
+ ["https://www.npr.org/rss/rss.php?id=1017","NPR Economy"],
+ ["https://www.aljazeera.com/xml/rss/all.xml","Al Jazeera World"],
+ ["https://rss.dw.com/rdf/rss-en-bus","DW Business"],
+ ["https://www.france24.com/en/rss","France 24"],
+ ["https://www.abc.net.au/news/feed/51120/rss.xml","ABC Australia Business"],
+ ["https://www.investing.com/rss/news_25.rss","Investing.com Economy"],
+ ["https://www.investing.com/rss/news_1.rss","Investing.com Markets"],
+ ["https://www.investing.com/rss/news_301.rss","Investing.com Crypto"],
+ ["https://www.nasdaq.com/feed/rssoutbound?category=Markets","Nasdaq Markets"],
+ ["https://www.nasdaq.com/feed/rssoutbound?category=Economy","Nasdaq Economy"],
+ ["https://www.economist.com/finance-and-economics/rss.xml","The Economist Finance"],
+ ["https://www.ft.com/?format=rss","Financial Times"],
+ ["https://feeds.marketwatch.com/marketwatch/topstories/","MarketWatch"],
+ ["https://feeds.marketwatch.com/marketwatch/marketpulse/","MarketWatch Market Pulse"],
+ ["https://www.moneycontrol.com/rss/marketreports.xml","Moneycontrol Markets"],
+ ["https://www.moneycontrol.com/rss/business.xml","Moneycontrol Business"],
+ ["https://www.livemint.com/rss/markets","Mint Markets"],
+ ["https://www.livemint.com/rss/money","Mint Money"],
+ ["https://www.japantimes.co.jp/feed/","The Japan Times"],
+ ["https://www.koreaherald.com/rss/011.xml","Korea Herald Business"],
+ ["https://www.africanews.com/feed/rss","Africanews"],
+ ["https://www.bnamericas.com/en/rss","BNamericas"]
 ] as const;
 
 export async function GET(){
- const tasks=[...sources.map(([url,name])=>fromRss(url,name)),fromGdelt()];
+ const gdeltQueries=[
+  '(finance OR "stock market" OR banking OR investment OR earnings)',
+  '(economy OR inflation OR GDP OR "interest rates" OR employment)',
+  '(cryptocurrency OR bitcoin OR blockchain OR fintech)',
+  '(forex OR currency OR gold OR silver OR oil OR commodities)',
+  '("Asia markets" OR "European markets" OR "African economy" OR "Latin America economy" OR "Middle East economy")'
+ ];
+ const tasks=[...sources.map(([url,name])=>fromRss(url,name)),...gdeltQueries.map(q=>fromGdelt(q))];
  const results=await Promise.allSettled(tasks);
  const articles=results.flatMap(r=>r.status==="fulfilled"?r.value:[]);
  const unique=Array.from(new Map(articles.filter(a=>a.url&&finance.test(a.title)).map(a=>[a.url,a])).values())
-  .sort((a,b)=>Date.parse(b.publishedAt||"")-Date.parse(a.publishedAt||"")).slice(0,150);
+  .sort((a,b)=>Date.parse(b.publishedAt||"")-Date.parse(a.publishedAt||"")).slice(0,500);
  const providers=Array.from(new Set(unique.map(a=>a.provider)));
  if(!unique.length)return NextResponse.json({articles:[],providers:[],error:"Global financial news providers are temporarily unavailable. Please refresh shortly."},{status:503,headers:{"Cache-Control":"no-store"}});
  return NextResponse.json({articles:unique,updatedAt:new Date().toISOString(),providers,sourceStatus:sources.map(([,name],i)=>({provider:name,status:results[i]?.status==="fulfilled"?"ok":"unavailable"}))},{headers:{"Cache-Control":"s-maxage=600, stale-while-revalidate=1800"}});
