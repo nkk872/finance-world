@@ -125,7 +125,7 @@ Return valid JSON only, matching this shape:
 Source headlines:
 ${JSON.stringify(sources, null, 2)}`;
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent", {
+    const modelCandidates = ["gemini-3.8-flash", "gemini-3.6-flash"];\n    let response: Response | null = null;\n    let lastProviderError = "";\n    for (const model of modelCandidates) {\n      response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": geminiApiKey },
       body: JSON.stringify({
@@ -159,7 +159,7 @@ ${JSON.stringify(sources, null, 2)}`;
       status: "Needs editor review" as const,
     })).filter((draft: { title: string; body: string }) => draft.title && draft.body);
 
-    return NextResponse.json({ drafts, generatedAt: new Date().toISOString(), sourceCount: sources.length });
+    if (!drafts.length) throw new Error("AI response did not contain usable drafts.");\n    return NextResponse.json({ drafts, generatedAt: new Date().toISOString(), sourceCount: sources.length, providers: Array.from(new Set(sources.map(source => source.domain))) });
   } catch (error) {
     console.error("Newsroom draft generation failed:", error);
     return NextResponse.json({ error: "Could not prepare drafts. Please try again." }, { status: 500 });
