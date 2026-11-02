@@ -27,8 +27,12 @@ async function fromGoogleNews(): Promise<Article[]> {
     const title = tagText(block, "title");
     const articleUrl = tagText(block, "link");
     if (!title || !articleUrl) return null;
-    const publisherMatch = block.match(/<source(?:\\s+[^>]*)?>([\\s\\S]*?)<\\/source>/i);
-    let domain = publisherMatch ? cleanPublisher(decodeXml(publisherMatch[1].trim())) : "";
+    const sourceStart = block.indexOf("<source");
+    const sourceOpenEnd = sourceStart >= 0 ? block.indexOf(">", sourceStart) : -1;
+    const sourceClose = sourceOpenEnd >= 0 ? block.indexOf("</source>", sourceOpenEnd) : -1;
+    let domain = sourceOpenEnd >= 0 && sourceClose > sourceOpenEnd
+      ? cleanPublisher(decodeXml(block.slice(sourceOpenEnd + 1, sourceClose).trim()))
+      : "";
     if (!domain) {
       try { domain = new URL(articleUrl).hostname; } catch { domain = "Unknown publisher"; }
     }
