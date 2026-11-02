@@ -33,3 +33,21 @@
 .source-footer>strong{font:800 13px Manrope;color:#263449}
 .source-footer p{font-size:12px}
 @media(max-width:600px){.news-image{height:190px}}
+
+.market-board{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;margin:0 0 30px}
+.market-board-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.market-board-head h2{font:800 22px Manrope,sans-serif;letter-spacing:-.6px;margin:4px 0 0}
+.market-updated{display:flex;align-items:center;gap:7px;color:#778294;font-size:11px}
+.market-quotes{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.market-group h3{font:800 11px Manrope,sans-serif;letter-spacing:1px;color:#475467;margin:0 0 11px}
+.market-group h3 small{font:600 9px 'DM Sans',sans-serif;color:#929baa;letter-spacing:.5px;margin-left:7px}
+.market-quote-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.quote-card{border:1px solid #edf0f3;border-radius:10px;padding:11px;min-width:0;display:grid;gap:5px}
+.quote-card>span{font-size:10px;color:#758092;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quote-card>span b{color:#243449;margin-left:4px}
+.quote-card strong{font:800 15px Manrope,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quote-card small{font-size:10px;font-weight:700}
+.quote-card .positive{color:#07865d}.quote-card .negative{color:#d14b4b}.quote-card .quote-muted{color:#929baa;font-weight:500}
+.market-disclaimer{font-size:10px;line-height:1.6;color:#8b95a3;margin:15px 0 0}
+.market-error{font-size:12px;color:#ad4545}
+@media(max-width:700px){.market-board{padding:16px}.market-quotes{grid-template-columns:1fr;gap:17px}.market-board-head h2{font-size:19px}.market-updated{font-size:9px}}
