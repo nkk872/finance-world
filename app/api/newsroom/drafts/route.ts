@@ -8,7 +8,7 @@ type SourceArticle = { title: string; url: string; domain: string; publishedAt: 
 
 function isAuthorized(request: NextRequest) {
   const expected = process.env.NEWSROOM_ADMIN_TOKEN;
-  const supplied = request.headers.get("authorization")?.replace(/^Bearer\\s+/i, "");
+  const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!expected || !supplied) return false;
   const a = Buffer.from(expected);
   const b = Buffer.from(supplied);
@@ -79,7 +79,7 @@ Never invent figures, quotes, dates, company actions, causes or market movements
 Return valid JSON only:
 {"drafts":[{"title":"...","category":"Markets|Economy|Business|Banking|Crypto","summary":"...","body":"...","sourceUrls":["https://..."],"editorChecks":["..."]}]}
 SOURCE HEADLINES:
-${JSON.stringify(sources)}`;
+${JSON.stringify(sources.slice(0, 18))}`;
 
     let response: Response | null = null;
     for (const model of ["gemini-3.8-flash", "gemini-3.6-flash"]) {
@@ -88,7 +88,7 @@ ${JSON.stringify(sources)}`;
         headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 4000, responseMimeType: "application/json" },
+          generationConfig: { temperature: 0.2, maxOutputTokens: 6000, responseMimeType: "application/json" },
         }),
         cache: "no-store",
         signal: AbortSignal.timeout(35000),
