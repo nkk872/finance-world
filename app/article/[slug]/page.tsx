@@ -5,6 +5,7 @@ type Props={params:Promise<{slug:string}>;searchParams:Promise<{title?:string;so
 function safeUrl(value?:string){if(!value)return null;try{const u=new URL(value);return u.protocol==="https:"||u.protocol==="http:"?u.toString():null;}catch{return null;}}
 function plain(value:string){return value.replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g," ").trim();}
 function paragraphs(value:string){return plain(value).split(/(?<=[.!?])\s+(?=[A-Z0-9])/).filter(Boolean);}
+function fallbackImage(category:string){const images:Record<string,string>={Markets:"https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1400&q=80",Economy:"https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1400&q=80",Business:"https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1400&q=80",Crypto:"https://images.unsplash.com/photo-1518546305927-5a555bb7020d?auto=format&fit=crop&w=1400&q=80",Banking:"https://images.unsplash.com/photo-1444653614773-995cb1ef9efa?auto=format&fit=crop&w=1400&q=80"};return images[category]||images.Markets;}
 async function fetchOfficialArticle(url:string|null):Promise<{text:string;image:string|null}>{
  if(!url)return {text:"",image:null};
  try{
@@ -39,7 +40,7 @@ export default async function ArticlePage({searchParams}:Props){
     <div className="eyebrow">Finance World • {category}</div><div className="article-kicker">FINANCIAL NEWS REPORT</div>
     <h1>{title}</h1>
     <div className="article-byline"><span>Reporting source: <strong>{source.replace(/^www\./,"")}</strong></span>{published?<span><Clock3 size={14}/>{published}</span>:null}</div>
-    {articleImage?<img className="article-cover" src={articleImage} alt={title} />:<div className="article-cover article-cover-placeholder">FINANCE WORLD • {category.toUpperCase()}</div>}
+    <><img className="article-cover" src={articleImage||fallbackImage(category)} alt={title} onError={e=>{const img=e.currentTarget;if(img.dataset.fallback==="1"){img.style.display="none";return;}img.dataset.fallback="1";img.src=fallbackImage(category);}}/>{!articleImage?<p className="meta">Illustrative category image — not a photograph from the original report.</p>:null}</>
     <section className="article-body">
      <h2>What happened</h2>
      {officialText?<p className="meta">Official public release • full source text reproduced with attribution</p>:null}
