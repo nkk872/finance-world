@@ -4,9 +4,9 @@ type Article={title:string;url:string;domain:string;publishedAt:string;image:str
 type GdeltArticle={title?:string;url?:string;domain?:string;seendate?:string;socialimage?:string};
 export const revalidate=600;
 
-function decodeXml(v:string){return v.replace(/<!\\[CDATA\\[|\\]\\]>/g,"").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
-function tagText(b:string,t:string){const m=b.match(new RegExp("<"+t+"(?:\\\\s[^>]*)?>([\\\\s\\\\S]*?)</"+t+">","i"));return m?decodeXml(m[1].replace(/<[^>]+>/g," ").replace(/\\s+/g," ")):"";}
-function imageFrom(b:string){const a=[b.match(/<media:content[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<enclosure[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]];return a.find(v=>v&&/^https?:\\/\\//i.test(v))??null;}
+function decodeXml(v:string){return v.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
+function tagText(b:string,t:string){const m=b.match(new RegExp("<"+t+"(?:\\s[^>]*)?>([\\s\\S]*?)</"+t+">","i"));return m?decodeXml(m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ")):"";}
+function imageFrom(b:string){const a=[b.match(/<media:content[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<enclosure[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]];return a.find(v=>v&&/^https?:\/\//i.test(v))??null;}
 function categoryFor(title:string):string{const t=title.toLowerCase();
  if(/crypto|bitcoin|ethereum|blockchain|token|stablecoin|defi|web3/.test(t))return "Crypto";
  if(/bank|central bank|interest rate|loan|credit|mortgage|deposit|lender/.test(t))return "Banking";
@@ -29,7 +29,7 @@ function regionFor(domain:string,title:string){const d=domain.toLowerCase(),t=ti
  if(/united states|u\.s\.|federal reserve|wall street|canada|mexico|dollar/.test(t)||/sec.gov|federalreserve.gov|bankofcanada/.test(d))return "North America";
  return "Global";
 }
-function cleanDomain(v:string){return v.replace(/^www\\./i,"").trim();}
+function cleanDomain(v:string){return v.replace(/^www\./i,"").trim();}
 async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  const response=await fetch(feedUrl,{headers:{Accept:"application/rss+xml, application/xml, text/xml","User-Agent":"FinanceWorld/1.0 (global financial news aggregator)"},cache:"no-store",signal:AbortSignal.timeout(5500)});
  if(!response.ok)throw new Error(provider+" feed failed: "+response.status);
@@ -49,7 +49,7 @@ async function fromGdelt():Promise<Article[]>{
  const payload=await response.json();
  return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>{const domain=cleanDomain(a.domain??new URL(a.url!).hostname);return {title:a.title!,url:a.url!,domain,publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT Global Monitor",summary:"",category:categoryFor(a.title!),region:regionFor(domain,a.title!)};});
 }
-const finance=/\\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\\b/i;
+const finance=/\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\b/i;
 const sources=[
  ["https://www.sec.gov/news/pressreleases.rss","U.S. SEC"],
  ["https://www.federalreserve.gov/feeds/press_all.xml","Federal Reserve"],
