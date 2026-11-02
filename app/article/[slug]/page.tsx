@@ -22,7 +22,7 @@ export default async function ArticlePage({searchParams}:Props){
  const p=await searchParams,title=p.title||"Financial story",source=p.source||"Financial news source",original=safeUrl(p.url),image=safeUrl(p.image),published=p.publishedAt||"",summary=plain(p.summary||""),category=p.category||"Financial markets";
  const officialText=await fetchOfficialFullText(original);
  const content=paragraphs(officialText||summary);
- const content=paragraphs(officialText||summary);
+
  return <>
   <div className="topline"><div className="container topline-inner"><span>GLOBAL FINANCE • BUSINESS • ECONOMY</span><span>Finance World • Independent coverage</span></div></div>
   <header className="masthead"><div className="container masthead-inner"><Link className="brand" href="/"><span className="brand-mark">F</span> FINANCE<span className="brand-word">WORLD</span></Link><Link className="subscribe" href="/">Back to news</Link></div></header>
