@@ -5,22 +5,29 @@ type Props={params:Promise<{slug:string}>;searchParams:Promise<{title?:string;so
 function safeUrl(value?:string){if(!value)return null;try{const u=new URL(value);return u.protocol==="https:"||u.protocol==="http:"?u.toString():null;}catch{return null;}}
 function plain(value:string){return value.replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g," ").trim();}
 function paragraphs(value:string){return plain(value).split(/(?<=[.!?])\s+(?=[A-Z0-9])/).filter(Boolean);}
-async function fetchOfficialFullText(url:string|null){
- if(!url)return "";
+async function fetchOfficialArticle(url:string|null):Promise<{text:string;image:string|null}>{
+ if(!url)return {text:"",image:null};
  try{
   const u=new URL(url);
-  if(!["www.sec.gov","sec.gov","www.federalreserve.gov","federalreserve.gov"].includes(u.hostname))return "";
-  const response=await fetch(u.toString(),{headers:{"User-Agent":"FinanceWorld/1.0 (source-attributed financial reporting)","Accept":"text/html"},signal:AbortSignal.timeout(5000),next:{revalidate:1800}});
-  if(!response.ok)return "";
+  if(!["www.sec.gov","sec.gov","www.federalreserve.gov","federalreserve.gov"].includes(u.hostname))return {text:"",image:null};
+  const response=await fetch(u.toString(),{headers:{"User-Agent":"FinanceWorld/1.0 (source-attributed financial reporting)","Accept":"text/html"},signal:AbortSignal.timeout(7000),next:{revalidate:1800}});
+  if(!response.ok)return {text:"",image:null};
   const html=await response.text();
+  const metaImage=html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)?.[1]
+    ||html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i)?.[1];
+  let image:string|null=null;
+  if(metaImage){try{image=safeUrl(new URL(metaImage,u).toString())}catch{}}
   const article=html.match(/<article[\s\S]*?<\/article>/i)?.[0]||html.match(/<main[\s\S]*?<\/main>/i)?.[0]||"";
-  if(!article)return "";
-  return article.replace(/<(script|style|nav|footer|header)[^>]*>[\s\S]*?<\/\1>/gi," ").replace(/<br\s*\/?>/gi,"\n").replace(/<\/(p|h[1-6]|li|div)>/gi,"\n").replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&#x27;/g,"'").replace(/\s+/g," ").trim().slice(0,24000);
- }catch{return "";}
+  if(!article)return {text:"",image};
+  const text=article.replace(/<(script|style|nav|footer|header)[^>]*>[\s\S]*?<\/\1>/gi," ").replace(/<br\s*\/?>/gi,"\n").replace(/<\/(p|h[1-6]|li|div)>/gi,"\n").replace(/<[^>]+>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&#x27;/g,"'").replace(/\s+/g," ").trim().slice(0,24000);
+  return {text,image};
+ }catch{return {text:"",image:null};}
 }
 export default async function ArticlePage({searchParams}:Props){
  const p=await searchParams,title=p.title||"Financial story",source=p.source||"Financial news source",original=safeUrl(p.url),image=safeUrl(p.image),published=p.publishedAt||"",summary=plain(p.summary||""),category=p.category||"Financial markets";
- const officialText=await fetchOfficialFullText(original);
+ const officialArticle=await fetchOfficialArticle(original);
+ const officialText=officialArticle.text;
+ const articleImage=image||officialArticle.image;
  const content=paragraphs(officialText||summary);
 
  return <>
@@ -32,7 +39,7 @@ export default async function ArticlePage({searchParams}:Props){
     <div className="eyebrow">Finance World • {category}</div><div className="article-kicker">FINANCIAL NEWS REPORT</div>
     <h1>{title}</h1>
     <div className="article-byline"><span>Reporting source: <strong>{source.replace(/^www\./,"")}</strong></span>{published?<span><Clock3 size={14}/>{published}</span>:null}</div>
-    {image?<img className="article-cover" src={image} alt={title} />:<div className="article-cover article-cover-placeholder">FINANCE WORLD • {category.toUpperCase()}</div>}
+    {articleImage?<img className="article-cover" src={articleImage} alt={title} />:<div className="article-cover article-cover-placeholder">FINANCE WORLD • {category.toUpperCase()}</div>}
     <section className="article-body">
      <h2>What happened</h2>
      {officialText?<p className="meta">Official public release • full source text reproduced with attribution</p>:null}
