@@ -39,17 +39,20 @@ async function fromGdelt(): Promise<Article[]> {
   return ((payload.articles ?? []) as GdeltArticle[]).filter(item => item.title && item.url).map(item => ({ title: item.title!, url: item.url!, domain: cleanPublisher(item.domain ?? new URL(item.url!).hostname), publishedAt: item.seendate ?? "", image: item.socialimage ?? null, provider: "GDELT" }));
 }
 
+const financialTerms = /\\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price)\\b/i;
+
 export async function GET() {
   const results = await Promise.allSettled([
     fromGdelt(),
     fromRss("https://www.sec.gov/news/pressreleases.rss", "U.S. SEC"),
-    fromRss("https://data.gdeltproject.org/gdeltv3/gal/feed.rss", "GDELT Global Article List"),
+    fromRss("https://www.federalreserve.gov/feeds/press_all.xml", "Federal Reserve"),
+    fromRss("https://www.ecb.europa.eu/rss/press.html", "European Central Bank"),
   ]);
   const articles = results.flatMap(result => result.status === "fulfilled" ? result.value : []);
-  const unique = Array.from(new Map(articles.filter(a => a.url).map(a => [a.url, a])).values())
+  const unique = Array.from(new Map(articles.filter(a => a.url && financialTerms.test(a.title)).map(a => [a.url, a])).values())
     .sort((a,b) => Date.parse(b.publishedAt || "") - Date.parse(a.publishedAt || ""))
     .slice(0, 60);
-  if (!unique.length) return NextResponse.json({ articles: [], error: "News sources are temporarily unavailable. Please try again shortly." }, { status: 502 });
+  if (!unique.length) return NextResponse.json({ articles: [], error: "Financial news sources are temporarily unavailable. Please try again shortly." }, { status: 502 });
   const providers = Array.from(new Set(unique.map(a => a.provider)));
   return NextResponse.json({ articles: unique, updatedAt: new Date().toISOString(), source: providers.join(" + "), providers }, { headers: { "Cache-Control": "s-maxage=600, stale-while-revalidate=1800" } });
 }
