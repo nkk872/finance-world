@@ -103,7 +103,7 @@ export async function GET(){
  const tasks=[...sources.map(([url,name])=>fromRss(url,name)),...gdeltQueries.map(q=>fromGdelt(q))];
  const results=await Promise.allSettled(tasks);
  const articles=results.flatMap(r=>r.status==="fulfilled"?r.value:[]);
- const unique=Array.from(new Map(articles.filter(a=>a.url&&finance.test(a.title)).map(a=>[a.url,a])).values())
+ const cutoff=Date.now()-30*24*60*60*1000;\n const unique=Array.from(new Map(articles.filter(a=>{if(!a.url||!finance.test(a.title))return false;const published=Date.parse(a.publishedAt);return Number.isFinite(published)&&published>=cutoff&&published<=Date.now()+24*60*60*1000;}).map(a=>[a.url,a])).values())
   .sort((a,b)=>Date.parse(b.publishedAt||"")-Date.parse(a.publishedAt||"")).slice(0,500);
  const providers=Array.from(new Set(unique.map(a=>a.provider)));
  if(!unique.length)return NextResponse.json({articles:[],providers:[],error:"Global financial news providers are temporarily unavailable. Please refresh shortly."},{status:503,headers:{"Cache-Control":"no-store"}});
