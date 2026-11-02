@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
   try {
     const sources = await getSourceArticles();
     const prompt = `You are the careful newsroom assistant for Finance World, an international financial news publication.
-Write exactly 3 concise original article drafts using ONLY the source headlines and metadata below. Each draft has a headline, category, summary, two short paragraphs and a source list.
+Write exactly 3 concise original article drafts using ONLY the source headlines and metadata below. Each draft has a headline, category, a one-sentence summary, a body of two short paragraphs (about 70-90 words total), and a source list.
 Never invent figures, quotes, dates, company actions, causes or market movements. A headline alone is not proof of the full story. Clearly say when a detail requires verification. No personal investment advice or buy/sell recommendations. Use only supplied source URLs.
 Return valid JSON only:
 {"drafts":[{"title":"...","category":"Markets|Economy|Business|Banking|Crypto","summary":"...","body":"...","sourceUrls":["https://..."],"editorChecks":["..."]}]}
