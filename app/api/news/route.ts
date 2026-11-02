@@ -6,11 +6,11 @@ type GdeltArticle = { title?:string; url?:string; domain?:string; seendate?:stri
 export const revalidate = 600;
 
 function decodeXml(value:string) {
-  return value.replace(/<!\\[CDATA\\[|\\]\\]>/g,"").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();
+  return value.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();
 }
 function tagText(block:string, tag:string) {
   const match=block.match(new RegExp("<"+tag+"(?:\\s[^>]*)?>([\\s\\S]*?)</"+tag+">","i"));
-  return match ? decodeXml(match[1].replace(/<[^>]+>/g," ").replace(/\\s+/g," ")) : "";
+  return match ? decodeXml(match[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ")) : "";
 }
 function imageFrom(block:string) {
   const candidates=[
@@ -19,7 +19,7 @@ function imageFrom(block:string) {
     block.match(/<enclosure[^>]+url=["']([^"']+)["']/i)?.[1],
     block.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]
   ];
-  return candidates.find(v=>v && /^https?:\\/\\//i.test(v)) ?? null;
+  return candidates.find(v=>v && /^https?:\/\//i.test(v)) ?? null;
 }
 function categoryFor(title:string):string {
   const t=title.toLowerCase();
@@ -29,7 +29,7 @@ function categoryFor(title:string):string {
   if(/company|business|earnings|revenue|profit|merger|ipo|ceo/.test(t)) return "Business";
   return "Markets";
 }
-function cleanDomain(value:string){return value.replace(/^www\\./i,"").trim();}
+function cleanDomain(value:string){return value.replace(/^www\./i,"").trim();}
 async function fromRss(feedUrl:string,provider:string):Promise<Article[]> {
   const response=await fetch(feedUrl,{headers:{Accept:"application/rss+xml, application/xml, text/xml","User-Agent":"FinanceWorld/1.0 (news aggregator)"},cache:"no-store",signal:AbortSignal.timeout(7000)});
   if(!response.ok) throw new Error(provider+" feed failed: "+response.status);
@@ -50,7 +50,7 @@ async function fromGdelt():Promise<Article[]> {
   const payload=await response.json();
   return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>({title:a.title!,url:a.url!,domain:cleanDomain(a.domain??new URL(a.url!).hostname),publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT",summary:"",category:categoryFor(a.title!)}));
 }
-const finance=/\\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price)\\b/i;
+const finance=/\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price)\b/i;
 
 export async function GET(){
   const feeds=[
