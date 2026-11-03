@@ -153,8 +153,8 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  return parsed;
 }
 async function fromGdelt(query:string):Promise<Article[]>{
- const params=new URLSearchParams({query:query,mode:"ArtList",format:"json",maxrecords:"250",timespan:"7d",sort:"DateDesc"});
- const response=await fetch("https://api.gdeltproject.org/api/v2/doc/doc?"+params,{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0"},cache:"no-store",signal:AbortSignal.timeout(5500)});
+ const params=new URLSearchParams({query:query,mode:"ArtList",format:"json",maxrecords:"75",timespan:"3d",sort:"DateDesc"});
+ const response=await fetch("https://api.gdeltproject.org/api/v2/doc/doc?"+params,{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0"},cache:"no-store",signal:AbortSignal.timeout(7000)});
  if(!response.ok)throw new Error("GDELT failed: "+response.status);
  const payload=await response.json();
  return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>{const domain=cleanDomain(a.domain??new URL(a.url!).hostname);const country=countryFromCode(a.sourcecountry)||countryFor(domain,a.title!);const region=regionFromCountryCode(a.sourcecountry)||regionFor(domain,a.title!);return {title:a.title!,url:a.url!,domain,publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT Global Monitor",summary:"",category:categoryFor(a.title!),region,country};});
@@ -216,8 +216,10 @@ const sources=[
  ["https://www.bnamericas.com/en/rss","BNamericas"]
 ] as const;
 
+export const maxDuration = 10;
+
 export async function GET(){
- const financialTerms='(finance OR "financial market" OR stocks OR banking OR economy OR business OR investment OR inflation OR GDP OR currency OR trade OR company OR earnings)';
+ const financialTerms='(finance OR "stock market" OR banking OR economy OR investment OR currency OR trade OR earnings)';
  const regions=["Asia","Africa","Europe","North America","South America","Oceania"];
  const regionalQueries=regions.map(region=>{
   const names=WORLD_COUNTRIES.filter(item=>regionFromCountryCode(item.code)===region).map(item=>'"'+item.name+'"');
