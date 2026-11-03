@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-type Article={title:string;url:string;domain:string;publishedAt:string;image:string|null;provider:string;summary:string;category:string;region:string};
+type Article={title:string;url:string;domain:string;publishedAt:string;image:string|null;provider:string;summary:string;category:string;region:string;country:string};
 type GdeltArticle={title?:string;url?:string;domain?:string;seendate?:string;socialimage?:string};
 export const revalidate=600;
 
@@ -39,14 +39,55 @@ function categoryFor(title:string):string{const t=title.toLowerCase();
  if(/stock|share|equity|bond|market|exchange|index|investor/.test(t))return "Markets";
  return "World Finance";
 }
-function regionFor(domain:string,title:string){const d=domain.toLowerCase(),t=title.toLowerCase();
- if(/india|rupee|rbi|sensex|nifty|mumbai|delhi/.test(t)||/rbi.org.in|businessline|livemint|moneycontrol/.test(d))return "Asia";
- if(/china|japan|korea|singapore|hong kong|australia|asia|yuan|yen/.test(t)||/scmp|nikkei|asia/.test(d))return "Asia-Pacific";
- if(/europe|eurozone|germany|france|switzerland|ecb|euro /.test(t)||/ecb.europa|bis.org|europarl/.test(d))return "Europe";
- if(/africa|nigeria|kenya|south africa|egypt|rand/.test(t))return "Africa";
- if(/brazil|argentina|mexico|latin america|chile/.test(t))return "Latin America";
- if(/uae|saudi|qatar|dubai|middle east|riyadh/.test(t))return "Middle East";
- if(/united states|u\.s\.|federal reserve|wall street|canada|mexico|dollar/.test(t)||/sec.gov|federalreserve.gov|bankofcanada/.test(d))return "North America";
+function countryFor(domain:string,title:string):string{
+ const v=(title+" "+domain).toLowerCase();
+ const groups:[string,string[]][]=[
+ ["India",["india","indian","rbi","sensex","nifty","mumbai","delhi","rupee","moneycontrol","livemint","businessline"]],
+ ["China",["china","chinese","beijing","shanghai","yuan","scmp"]],
+ ["Japan",["japan","japanese","tokyo","nikkei","yen"]],
+ ["South Korea",["south korea","korean","seoul","won","koreaherald"]],
+ ["Singapore",["singapore"]],["Hong Kong",["hong kong"]],
+ ["Indonesia",["indonesia","jakarta","rupiah"]],["Malaysia",["malaysia","kuala lumpur","ringgit"]],
+ ["Thailand",["thailand","bangkok","baht"]],["Vietnam",["vietnam","dong"]],
+ ["Pakistan",["pakistan","karachi","islamabad"]],["Bangladesh",["bangladesh","dhaka","taka"]],
+ ["Sri Lanka",["sri lanka","colombo"]],["Australia",["australia","sydney","melbourne"]],
+ ["New Zealand",["new zealand","auckland","wellington"]],
+ ["Nigeria",["nigeria","lagos","naira"]],["Kenya",["kenya","nairobi"]],
+ ["South Africa",["south africa","johannesburg","rand"]],["Egypt",["egypt","cairo"]],
+ ["Ghana",["ghana","accra","cedi"]],["Morocco",["morocco","casablanca"]],["Ethiopia",["ethiopia","addis ababa"]],
+ ["Germany",["germany","german","berlin","frankfurt"]],["France",["france","french","paris"]],
+ ["United Kingdom",["united kingdom","britain","british","london","uk"]],
+ ["Italy",["italy","italian","rome","milan"]],["Spain",["spain","spanish","madrid"]],
+ ["Switzerland",["switzerland","zurich","geneva"]],["Netherlands",["netherlands","dutch","amsterdam"]],
+ ["Ireland",["ireland","dublin"]],["Sweden",["sweden","stockholm"]],["Norway",["norway","oslo"]],
+ ["Denmark",["denmark","copenhagen"]],["United States",["united states","u.s.","american","wall street","new york","federal reserve","sec.gov","federalreserve.gov"]],
+ ["Canada",["canada","toronto","vancouver","bank of canada"]],["Mexico",["mexico","mexican","mexico city"]],
+ ["Brazil",["brazil","brazilian","sao paulo"]],["Argentina",["argentina","buenos aires"]],
+ ["Chile",["chile","santiago"]],["Colombia",["colombia","bogota"]],["Peru",["peru","lima"]],
+ ["United Arab Emirates",["uae","united arab emirates","dubai","abu dhabi"]],
+ ["Saudi Arabia",["saudi arabia","riyadh"]],["Qatar",["qatar","doha"]],["Türkiye",["turkey","turkish","istanbul","ankara"]]
+ ];
+ for(const [name,terms] of groups)if(terms.some(term=>v.includes(term)))return name;
+ return "";
+}
+function regionFor(domain:string,title:string):string{
+ const country=countryFor(domain,title);
+ const areas:[string,string[]][]=[
+ ["Asia",["India","China","Japan","South Korea","Singapore","Hong Kong","Indonesia","Malaysia","Thailand","Vietnam","Pakistan","Bangladesh","Sri Lanka","United Arab Emirates","Saudi Arabia","Qatar","Türkiye"]],
+ ["Africa",["Nigeria","Kenya","South Africa","Egypt","Ghana","Morocco","Ethiopia"]],
+ ["Europe",["Germany","France","United Kingdom","Italy","Spain","Switzerland","Netherlands","Ireland","Sweden","Norway","Denmark"]],
+ ["North America",["United States","Canada","Mexico"]],
+ ["South America",["Brazil","Argentina","Chile","Colombia","Peru"]],
+ ["Oceania",["Australia","New Zealand"]]
+ ];
+ for(const [region,countries] of areas)if(countries.includes(country))return region;
+ const v=(title+" "+domain).toLowerCase();
+ if(v.includes("africa"))return "Africa";
+ if(v.includes("europe")||v.includes("eurozone")||v.includes("ecb"))return "Europe";
+ if(v.includes("south america")||v.includes("latin america"))return "South America";
+ if(v.includes("oceania")||v.includes("pacific islands"))return "Oceania";
+ if(v.includes("asia")||v.includes("asean")||v.includes("middle east"))return "Asia";
+ if(v.includes("united states")||v.includes("u.s.")||v.includes("wall street"))return "North America";
  return "Global";
 }
 function cleanDomain(v:string){return v.replace(/^www\./i,"").trim();}
@@ -59,15 +100,15 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
   let domain=tagText(b,"source");if(!domain){try{domain=new URL(url).hostname}catch{domain=provider;}}
   const summary=tagText(b,"description")||tagText(b,"content:encoded");
   const clean=cleanDomain(domain);
-  return {title,url,domain:clean,publishedAt:tagText(b,"pubDate"),image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title)};
+  return {title,url,domain:clean,publishedAt:tagText(b,"pubDate"),image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
  }).filter((a):a is Article=>a!==null);
 }
 async function fromGdelt(query:string):Promise<Article[]>{
- const params=new URLSearchParams({query:query+" sourcelang:english",mode:"ArtList",format:"json",maxrecords:"250",timespan:"7d",sort:"DateDesc"});
+ const params=new URLSearchParams({query:query,mode:"ArtList",format:"json",maxrecords:"250",timespan:"7d",sort:"DateDesc"});
  const response=await fetch("https://api.gdeltproject.org/api/v2/doc/doc?"+params,{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0"},cache:"no-store",signal:AbortSignal.timeout(5500)});
  if(!response.ok)throw new Error("GDELT failed: "+response.status);
  const payload=await response.json();
- return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>{const domain=cleanDomain(a.domain??new URL(a.url!).hostname);return {title:a.title!,url:a.url!,domain,publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT Global Monitor",summary:"",category:categoryFor(a.title!),region:regionFor(domain,a.title!)};});
+ return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>{const domain=cleanDomain(a.domain??new URL(a.url!).hostname);return {title:a.title!,url:a.url!,domain,publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT Global Monitor",summary:"",category:categoryFor(a.title!),region:regionFor(domain,a.title!),country:countryFor(domain,a.title!)};});
 }
 const finance=/\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\b/i;
 const sources=[
@@ -114,18 +155,21 @@ const sources=[
 
 export async function GET(){
  const gdeltQueries=[
-  '(finance OR "stock market" OR banking OR investment OR earnings)',
-  '(economy OR inflation OR GDP OR "interest rates" OR employment)',
-  '(cryptocurrency OR bitcoin OR blockchain OR fintech)',
-  '(forex OR currency OR gold OR silver OR oil OR commodities)',
-  '("Asia markets" OR "European markets" OR "African economy" OR "Latin America economy" OR "Middle East economy")'
+  '(finance OR "stock market" OR banking OR investment OR earnings OR economy OR inflation OR GDP)',
+  '(India OR China OR Japan OR Singapore OR Indonesia OR Malaysia OR Thailand OR Vietnam OR Pakistan OR Bangladesh) (finance OR markets OR banking OR economy OR business OR investment)',
+  '(Nigeria OR Kenya OR "South Africa" OR Egypt OR Ghana OR Morocco OR Ethiopia) (finance OR markets OR banking OR economy OR business OR investment)',
+  '(Germany OR France OR "United Kingdom" OR Italy OR Spain OR Switzerland OR Netherlands OR Sweden OR Norway) (finance OR markets OR banking OR economy OR business OR investment)',
+  '("United States" OR Canada OR Mexico) (finance OR markets OR banking OR economy OR business OR investment)',
+  '(Brazil OR Argentina OR Chile OR Colombia OR Peru) (finance OR markets OR banking OR economy OR business OR investment)',
+  '(Australia OR "New Zealand" OR "Pacific Islands") (finance OR markets OR banking OR economy OR business OR investment)',
+  '(cryptocurrency OR bitcoin OR blockchain OR fintech OR forex OR currency OR gold OR silver OR oil OR commodities)'
  ];
  const tasks=[...sources.map(([url,name])=>fromRss(url,name)),...gdeltQueries.map(q=>fromGdelt(q))];
  const results=await Promise.allSettled(tasks);
  const articles=results.flatMap(r=>r.status==="fulfilled"?r.value:[]);
  const cutoff=Date.now()-30*24*60*60*1000;
  const unique=Array.from(new Map(articles.filter(a=>{if(!a.url||!finance.test(a.title))return false;const published=Date.parse(a.publishedAt);return Number.isFinite(published)&&published>=cutoff&&published<=Date.now()+24*60*60*1000;}).map(a=>[a.url,a])).values())
-  .sort((a,b)=>Date.parse(b.publishedAt||"")-Date.parse(a.publishedAt||"")).slice(0,500);
+  .sort((a,b)=>Date.parse(b.publishedAt||"")-Date.parse(a.publishedAt||"")).slice(0,1000);
  const providers=Array.from(new Set(unique.map(a=>a.provider)));
  if(!unique.length)return NextResponse.json({articles:[],providers:[],error:"Global financial news providers are temporarily unavailable. Please refresh shortly."},{status:503,headers:{"Cache-Control":"no-store"}});
  return NextResponse.json({articles:unique,updatedAt:new Date().toISOString(),providers,sourceStatus:sources.map(([,name],i)=>({provider:name,status:results[i]?.status==="fulfilled"?"ok":"unavailable"}))},{headers:{"Cache-Control":"s-maxage=600, stale-while-revalidate=1800"}});
