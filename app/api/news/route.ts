@@ -247,14 +247,16 @@ export async function GET(){
     provider:name,
     status:results[i]?.status==="fulfilled"?"ok":"unavailable",
     itemsReceived:results[i]?.status==="fulfilled"?results[i].value.length:0,
-    financialStories:unique.filter(article=>article.provider===name).length
+    financialStories:unique.filter(article=>article.provider===name).length,
+    error:results[i]?.status==="rejected"?String(results[i].reason?.message??"").slice(0,120):undefined
   })),
   gdeltStatus:gdeltQueries.map((_,i)=>{
     const result=results[sources.length+i];
     return {
       region:i===0?"Global":regions[i-1]??"Special topics",
       status:result?.status==="fulfilled"?"ok":"unavailable",
-      itemsReceived:result?.status==="fulfilled"?result.value.length:0
+      itemsReceived:result?.status==="fulfilled"?result.value.length:0,
+      error:result?.status==="rejected"?String(result.reason?.message??"").slice(0,120):undefined
     };
   })
 },{headers:{"Cache-Control":"s-maxage=600, stale-while-revalidate=1800"}});
