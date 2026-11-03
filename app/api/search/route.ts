@@ -121,14 +121,14 @@ export async function GET(request: NextRequest) {
       });
       if (!feedResponse.ok) throw new Error("News feed fallback unavailable");
       const feed = await feedResponse.json();
-      const needle = term.toLowerCase();
+      const needle = term.toLowerCase().replace(/s$/, "");
       const articles = (Array.isArray(feed.articles) ? feed.articles : [])
         .filter((article: Record<string, unknown>) => {
           const searchable = [
             article.title, article.summary, article.domain, article.provider,
             article.country, article.region, article.category
           ].filter(Boolean).join(" ").toLowerCase();
-          return searchable.includes(needle);
+          return searchable.includes(needle) || searchable.includes(term.toLowerCase());
         })
         .slice(0, 50);
       return NextResponse.json(
