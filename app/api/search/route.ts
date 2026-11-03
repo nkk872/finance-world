@@ -1,3 +1,4 @@
+import { countryFromCode, regionFromCountryCode } from "../../../lib/countries";
 import { NextRequest, NextResponse } from "next/server";
 
 type GdeltArticle = {
@@ -6,6 +7,7 @@ type GdeltArticle = {
   domain?: string;
   seendate?: string;
   socialimage?: string;
+  sourcecountry?: string;
 };
 
 function categoryFor(title: string): string {
@@ -104,8 +106,8 @@ export async function GET(request: NextRequest) {
           summary: "",
           category: categoryFor(a.title!),
           provider: "GDELT Global Monitor",
-          region: regionFor(a.title!, domain),
-          country: countryFor(a.title!, domain)
+          region: regionFromCountryCode(a.sourcecountry) || regionFor(a.title!, domain),
+          country: countryFromCode(a.sourcecountry) || countryFor(a.title!, domain)
         };
       });
     return NextResponse.json({ articles, updatedAt: new Date().toISOString() }, { headers: { "Cache-Control": "no-store" } });
