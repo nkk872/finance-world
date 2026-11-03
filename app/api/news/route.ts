@@ -69,6 +69,32 @@ function countryFor(domain:string,title:string):string{
  ["Saudi Arabia",["saudi arabia","riyadh"]],["Qatar",["qatar","doha"]],["Türkiye",["turkey","turkish","istanbul","ankara"]]
  ];
  for(const [name,terms] of groups)if(terms.some(term=>v.includes(term)))return name;
+
+ // Publisher-domain hints help classify local reporting when the headline
+ // itself does not repeat the country name.
+ const host=domain.toLowerCase().replace(/^www\./,"").split("/")[0];
+ const publisherDomains:[string,string][]=[
+  ["moneycontrol.com","India"],["business-standard.com","India"],["livemint.com","India"],
+  ["scmp.com","Hong Kong"],["koreaherald.com","South Korea"],["abc.net.au","Australia"],
+  ["japantimes.co.jp","Japan"],["theguardian.com","United Kingdom"],["ft.com","United Kingdom"],
+  ["marketwatch.com","United States"],["cnbc.com","United States"],["sec.gov","United States"],
+  ["federalreserve.gov","United States"],["bankofcanada.ca","Canada"],
+  ["africanews.com","Africa"]
+ ];
+ for(const [suffix,country] of publisherDomains)if(host===suffix||host.endsWith("."+suffix))return country;
+ const suffixCountries:[string,string][]=[
+  [".co.uk","United Kingdom"],[".com.au","Australia"],[".net.au","Australia"],[".co.nz","New Zealand"],
+  [".co.za","South Africa"],[".co.ke","Kenya"],[".com.ng","Nigeria"],[".com.pk","Pakistan"],
+  [".com.bd","Bangladesh"],[".com.my","Malaysia"],[".co.id","Indonesia"],[".co.th","Thailand"],
+  [".com.vn","Vietnam"],[".com.hk","Hong Kong"],[".co.jp","Japan"],[".com.cn","China"],
+  [".com.br","Brazil"],[".com.mx","Mexico"],[".com.ar","Argentina"],[".com.tr","Türkiye"],
+  [".in","India"],[".de","Germany"],[".fr","France"],[".it","Italy"],[".es","Spain"],
+  [".ch","Switzerland"],[".nl","Netherlands"],[".ie","Ireland"],[".se","Sweden"],
+  [".no","Norway"],[".dk","Denmark"],[".ca","Canada"],[".eg","Egypt"],[".gh","Ghana"],
+  [".ma","Morocco"],[".ng","Nigeria"],[".ke","Kenya"],[".za","South Africa"],[".ae","United Arab Emirates"],
+  [".sa","Saudi Arabia"],[".qa","Qatar"],[".pk","Pakistan"],[".bd","Bangladesh"],[".lk","Sri Lanka"]
+ ];
+ for(const [suffix,country] of suffixCountries)if(host.endsWith(suffix))return country;
  return "";
 }
 function regionFor(domain:string,title:string):string{
@@ -98,7 +124,8 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  const xml=await response.text();
  return xml.split("<item>").slice(1).map(b=>b.split("</item>")[0]).slice(0,35).map((b):Article|null=>{
   const title=tagText(b,"title"),url=tagText(b,"link");if(!title||!url)return null;
-  let domain=tagText(b,"source");if(!domain){try{domain=new URL(url).hostname}catch{domain=provider;}}
+  let domain="";
+  try { domain=new URL(url).hostname; } catch { domain=tagText(b,"source")||provider; }
   const summary=tagText(b,"description")||tagText(b,"content:encoded");
   const clean=cleanDomain(domain);
   return {title,url,domain:clean,publishedAt:tagText(b,"pubDate"),image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
