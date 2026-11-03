@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import ArticleImage from "../../../components/ArticleImage";
 import { ArrowLeft, Clock3, ExternalLink, ShieldCheck, TrendingUp } from "lucide-react";
 
@@ -7,6 +8,13 @@ function safeUrl(value?:string){if(!value)return null;try{const u=new URL(value)
 function plain(value:string){return value.replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/\s+/g," ").trim();}
 function paragraphs(value:string){return plain(value).split(/(?<=[.!?])\s+(?=[A-Z0-9])/).filter(Boolean);}
 function fallbackImage(category:string){const images:Record<string,string>={Markets:"https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1400&q=80",Economy:"https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1400&q=80",Business:"https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1400&q=80",Crypto:"https://images.unsplash.com/photo-1518546305927-5a555bb7020d?auto=format&fit=crop&w=1400&q=80",Banking:"https://images.unsplash.com/photo-1444653614773-995cb1ef9efa?auto=format&fit=crop&w=1400&q=80"};return images[category]||images.Markets;}
+export async function generateMetadata({searchParams}:Props):Promise<Metadata>{
+ const p=await searchParams;
+ const title=(p.title||"Financial story").trim().slice(0,180);
+ const description=plain(p.summary||"Read this financial news report on Finance World.").slice(0,160);
+ const image=safeUrl(p.image);
+ return {title:title+" | Finance World",description,openGraph:{title,description,type:"article",publishedTime:p.publishedAt||undefined,...(image?{images:[image]}:{})},twitter:{card:image?"summary_large_image":"summary",title,description,...(image?{images:[image]}:{})}};
+}
 async function fetchOfficialArticle(url:string|null):Promise<{text:string;image:string|null}>{
  if(!url)return {text:"",image:null};
  try{
