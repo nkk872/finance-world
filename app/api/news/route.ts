@@ -239,10 +239,23 @@ export async function GET(){
   .sort((a,b)=>Date.parse(b.publishedAt||"")-Date.parse(a.publishedAt||"")).slice(0,1000);
  const providers=Array.from(new Set(unique.map(a=>a.provider)));
  if(!unique.length)return NextResponse.json({articles:[],providers:[],error:"Global financial news providers are temporarily unavailable. Please refresh shortly."},{status:503,headers:{"Cache-Control":"no-store"}});
- return NextResponse.json({articles:unique,updatedAt:new Date().toISOString(),providers,sourceStatus:sources.map(([,name],i)=>({
-  provider:name,
-  status:results[i]?.status==="fulfilled"?"ok":"unavailable",
-  itemsReceived:results[i]?.status==="fulfilled"?results[i].value.length:0,
-  financialStories:unique.filter(article=>article.provider===name).length
-}))},{headers:{"Cache-Control":"s-maxage=600, stale-while-revalidate=1800"}});
+ return NextResponse.json({
+  articles:unique,
+  updatedAt:new Date().toISOString(),
+  providers,
+  sourceStatus:sources.map(([,name],i)=>({
+    provider:name,
+    status:results[i]?.status==="fulfilled"?"ok":"unavailable",
+    itemsReceived:results[i]?.status==="fulfilled"?results[i].value.length:0,
+    financialStories:unique.filter(article=>article.provider===name).length
+  })),
+  gdeltStatus:gdeltQueries.map((_,i)=>{
+    const result=results[sources.length+i];
+    return {
+      region:i===0?"Global":regions[i-1]??"Special topics",
+      status:result?.status==="fulfilled"?"ok":"unavailable",
+      itemsReceived:result?.status==="fulfilled"?result.value.length:0
+    };
+  })
+},{headers:{"Cache-Control":"s-maxage=600, stale-while-revalidate=1800"}});
 }
