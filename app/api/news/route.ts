@@ -1,7 +1,8 @@
+import { countryFromCode, regionFromCountryCode } from "../../../lib/countries";
 import { NextResponse } from "next/server";
 
 type Article={title:string;url:string;domain:string;publishedAt:string;image:string|null;provider:string;summary:string;category:string;region:string;country:string};
-type GdeltArticle={title?:string;url?:string;domain?:string;seendate?:string;socialimage?:string};
+type GdeltArticle={title?:string;url?:string;domain?:string;seendate?:string;socialimage?:string;sourcecountry?:string};
 export const revalidate=600;
 
 function decodeXml(v:string){return v.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(parseInt(n,10))).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
@@ -108,7 +109,7 @@ async function fromGdelt(query:string):Promise<Article[]>{
  const response=await fetch("https://api.gdeltproject.org/api/v2/doc/doc?"+params,{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0"},cache:"no-store",signal:AbortSignal.timeout(5500)});
  if(!response.ok)throw new Error("GDELT failed: "+response.status);
  const payload=await response.json();
- return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>{const domain=cleanDomain(a.domain??new URL(a.url!).hostname);return {title:a.title!,url:a.url!,domain,publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT Global Monitor",summary:"",category:categoryFor(a.title!),region:regionFor(domain,a.title!),country:countryFor(domain,a.title!)};});
+ return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>{const domain=cleanDomain(a.domain??new URL(a.url!).hostname);const country=countryFromCode(a.sourcecountry)||countryFor(domain,a.title!);const region=regionFromCountryCode(a.sourcecountry)||regionFor(domain,a.title!);return {title:a.title!,url:a.url!,domain,publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT Global Monitor",summary:"",category:categoryFor(a.title!),region,country};});
 }
 const finance=/\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\b/i;
 const sources=[
