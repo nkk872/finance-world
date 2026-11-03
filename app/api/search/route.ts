@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch("https://api.gdeltproject.org/api/v2/doc/doc?" + params.toString(), {
       headers: { Accept: "application/json", "User-Agent": "FinanceWorld/1.0" },
       cache: "no-store",
-      signal: AbortSignal.timeout(7000)
+      signal: AbortSignal.timeout(3500)
     });
     if (!response.ok) throw new Error("News search provider returned " + response.status);
     const payload = await response.json();
@@ -112,6 +112,31 @@ export async function GET(request: NextRequest) {
       });
     return NextResponse.json({ articles, updatedAt: new Date().toISOString() }, { headers: { "Cache-Control": "no-store" } });
   } catch {
-    return NextResponse.json({ articles: [], error: "Global news search is temporarily unavailable. Please try again." }, { status: 502 });
+    // GDELT can be intermittently slow or unavailable. Fall back to the live
+    // multi-provider news feed so site search remains useful during outages.
+    try {
+      const feedResponse = await fetch(new URL("/api/news", request.nextUrl.origin), {
+        cache: "no-store",
+        signal: AbortSignal.timeout(4500)
+      });
+      if (!feedResponse.ok) throw new Error("News feed fallback unavailable");
+      const feed = await feedResponse.json();
+      const needle = term.toLowerCase();
+      const articles = (Array.isArray(feed.articles) ? feed.articles : [])
+        .filter((article: Record<string, unknown>) => {
+          const searchable = [
+            article.title, article.summary, article.domain, article.provider,
+            article.country, article.region, article.category
+          ].filter(Boolean).join(" ").toLowerCase();
+          return searchable.includes(needle);
+        })
+        .slice(0, 50);
+      return NextResponse.json(
+        { articles, updatedAt: feed.updatedAt || new Date().toISOString(), fallback: true },
+        { headers: { "Cache-Control": "no-store" } }
+      );
+    } catch {
+      return NextResponse.json({ articles: [], error: "Global news search is temporarily unavailable. Please try again." }, { status: 502 });
+    }
   }
 }
