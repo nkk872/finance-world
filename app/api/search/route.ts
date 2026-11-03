@@ -126,8 +126,7 @@ export async function GET(request: NextRequest) {
       const articles = (Array.isArray(feed.articles) ? feed.articles : [])
         .filter((article: Record<string, unknown>) => {
           const searchable = [
-            article.title, article.summary, article.domain, article.provider,
-            article.country, article.region, article.category
+            article.title, article.summary, article.country, article.region, article.category
           ].filter(Boolean).join(" ").toLowerCase();
           return searchable.includes(needle) || searchable.includes(term.toLowerCase());
         })
