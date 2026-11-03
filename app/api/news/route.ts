@@ -76,8 +76,7 @@ function countryFor(domain:string,title:string):string{
  const publisherDomains:[string,string][]=[
   ["moneycontrol.com","India"],["business-standard.com","India"],["livemint.com","India"],
   ["scmp.com","Hong Kong"],["koreaherald.com","South Korea"],["abc.net.au","Australia"],
-  ["japantimes.co.jp","Japan"],["theguardian.com","United Kingdom"],["ft.com","United Kingdom"],
-  ["marketwatch.com","United States"],["cnbc.com","United States"],["sec.gov","United States"],
+  ["japantimes.co.jp","Japan"],["sec.gov","United States"],
   ["federalreserve.gov","United States"],["bankofcanada.ca","Canada"],
   ["africanews.com","Africa"]
  ];
