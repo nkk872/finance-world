@@ -120,16 +120,24 @@ function regionFor(domain:string,title:string):string{
 }
 function cleanDomain(v:string){return v.replace(/^www\./i,"").trim();}
 async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
- const response=await fetch(feedUrl,{headers:{Accept:"application/rss+xml, application/xml, text/xml","User-Agent":"FinanceWorld/1.0 (global financial news aggregator)"},cache:"no-store",signal:AbortSignal.timeout(5500)});
+ const response=await fetch(feedUrl,{headers:{Accept:"application/rss+xml, application/atom+xml, application/xml, text/xml","User-Agent":"FinanceWorld/1.0 (global financial news aggregator)"},cache:"no-store",signal:AbortSignal.timeout(5500)});
  if(!response.ok)throw new Error(provider+" feed failed: "+response.status);
  const xml=await response.text();
- return xml.split("<item>").slice(1).map(b=>b.split("</item>")[0]).slice(0,35).map((b):Article|null=>{
-  const title=tagText(b,"title"),url=tagText(b,"link");if(!title||!url)return null;
+ const rssItems=xml.match(/<item\\b[^>]*>[\\s\\S]*?<\\/item>/gi)??[];
+ const atomItems=xml.match(/<entry\\b[^>]*>[\\s\\S]*?<\\/entry>/gi)??[];
+ const blocks=[...rssItems,...atomItems].slice(0,35);
+ return blocks.map((b):Article|null=>{
+  const title=tagText(b,"title");
+  const linkTag=b.match(/<link\\b[^>]*>/i)?.[0]??"";
+  const href=linkTag.match(/\\bhref=["']([^"']+)["']/i)?.[1]??"";
+  const url=tagText(b,"link")||href||tagText(b,"guid")||"";
+  if(!title||!url)return null;
   let domain="";
   try { domain=new URL(url).hostname; } catch { domain=tagText(b,"source")||provider; }
-  const summary=tagText(b,"description")||tagText(b,"content:encoded");
+  const summary=tagText(b,"description")||tagText(b,"summary")||tagText(b,"content:encoded")||tagText(b,"content");
+  const publishedAt=tagText(b,"pubDate")||tagText(b,"published")||tagText(b,"updated")||tagText(b,"dc:date");
   const clean=cleanDomain(domain);
-  return {title,url,domain:clean,publishedAt:tagText(b,"pubDate"),image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
+  return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
  }).filter((a):a is Article=>a!==null);
 }
 async function fromGdelt(query:string):Promise<Article[]>{
