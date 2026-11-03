@@ -145,7 +145,11 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
   const clean=cleanDomain(domain);
   return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
  }).filter((a):a is Article=>a!==null);
- if(!parsed.length)throw new Error(provider+" feed contained no parseable RSS/Atom items");
+ if(!parsed.length){
+  const contentType=response.headers.get("content-type")||"unknown";
+  const rootTag=xml.match(/<([a-zA-Z][\\w:.-]*)\\b/)?.[1]||"none";
+  throw new Error(provider+" feed not recognized ("+contentType+", root "+rootTag+")");
+ }
  return parsed;
 }
 async function fromGdelt(query:string):Promise<Article[]>{
