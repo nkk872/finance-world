@@ -1,4 +1,4 @@
-import { countryFromCode, regionFromCountryCode } from "../../../lib/countries";
+import { countryFromCode, regionFromCountryCode, WORLD_COUNTRIES } from "../../../lib/countries";
 import { NextResponse } from "next/server";
 
 type Article={title:string;url:string;domain:string;publishedAt:string;image:string|null;provider:string;summary:string;category:string;region:string;country:string};
@@ -155,14 +155,15 @@ const sources=[
 ] as const;
 
 export async function GET(){
+ const financialTerms='(finance OR "financial market" OR stocks OR banking OR economy OR business OR investment OR inflation OR GDP OR currency OR trade OR company OR earnings)';
+ const regions=["Asia","Africa","Europe","North America","South America","Oceania"];
+ const regionalQueries=regions.map(region=>{
+  const names=WORLD_COUNTRIES.filter(item=>regionFromCountryCode(item.code)===region).map(item=>'"'+item.name+'"');
+  return '('+names.join(' OR ')+') '+financialTerms;
+ });
  const gdeltQueries=[
   '(finance OR "stock market" OR banking OR investment OR earnings OR economy OR inflation OR GDP)',
-  '(India OR China OR Japan OR Singapore OR Indonesia OR Malaysia OR Thailand OR Vietnam OR Pakistan OR Bangladesh) (finance OR markets OR banking OR economy OR business OR investment)',
-  '(Nigeria OR Kenya OR "South Africa" OR Egypt OR Ghana OR Morocco OR Ethiopia) (finance OR markets OR banking OR economy OR business OR investment)',
-  '(Germany OR France OR "United Kingdom" OR Italy OR Spain OR Switzerland OR Netherlands OR Sweden OR Norway) (finance OR markets OR banking OR economy OR business OR investment)',
-  '("United States" OR Canada OR Mexico) (finance OR markets OR banking OR economy OR business OR investment)',
-  '(Brazil OR Argentina OR Chile OR Colombia OR Peru) (finance OR markets OR banking OR economy OR business OR investment)',
-  '(Australia OR "New Zealand" OR "Pacific Islands") (finance OR markets OR banking OR economy OR business OR investment)',
+  ...regionalQueries,
   '(cryptocurrency OR bitcoin OR blockchain OR fintech OR forex OR currency OR gold OR silver OR oil OR commodities)'
  ];
  const tasks=[...sources.map(([url,name])=>fromRss(url,name)),...gdeltQueries.map(q=>fromGdelt(q))];
