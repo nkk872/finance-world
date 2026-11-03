@@ -80,7 +80,7 @@ function countryFor(domain:string,title:string):string{
   ["indianexpress.com","India"],["indiatoday.in","India"],["freepressjournal.in","India"],
   ["deccanchronicle.com","India"],["dawn.com","Pakistan"],["businessday.ng","Nigeria"],
   ["businessdailyafrica.com","Kenya"],["moneyweb.co.za","South Africa"],["businesstech.co.za","South Africa"],
-  ["channelnewsasia.com","Singapore"],["thedailystar.net","Bangladesh"],["tbsnews.net","Bangladesh"],
+  ["thedailystar.net","Bangladesh"],["tbsnews.net","Bangladesh"],
   ["bdnews24.com","Bangladesh"],["folha.uol.com.br","Brazil"],["riotimesonline.com","Brazil"],
   ["scmp.com","Hong Kong"],["koreaherald.com","South Korea"],["abc.net.au","Australia"],
   ["japantimes.co.jp","Japan"],["sec.gov","United States"],
@@ -144,7 +144,7 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
   const summary=tagText(b,"description")||tagText(b,"summary")||tagText(b,"content:encoded")||tagText(b,"content");
   const publishedAt=tagText(b,"pubDate")||tagText(b,"published")||tagText(b,"updated")||tagText(b,"date");
   const clean=cleanDomain(domain);
-  return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
+  return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,500),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
  }).filter((a):a is Article=>a!==null);
  if(!parsed.length){
   const contentType=response.headers.get("content-type")||"unknown";
@@ -195,8 +195,6 @@ const sources=[
  ["https://www.businessdailyafrica.com/service/rss/bd/1939132/feed.rss","Business Daily Africa"],
  ["https://www.moneyweb.co.za/feed/","Moneyweb South Africa"],
  ["https://businesstech.co.za/news/feed/","BusinessTech South Africa"],
- ["https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml&category=6936","CNA Business"],
- ["https://www.channelnewsasia.com/api/v1/rss-outbound-feed?_format=xml&category=10416","CNA Singapore"],
  ["https://www.thedailystar.net/frontpage/rss.xml","The Daily Star Bangladesh"],
  ["https://www.tbsnews.net/top-news/rss.xml","The Business Standard Bangladesh"],
  ["https://bdnews24.com/?widgetName=rssfeed&widgetId=1150&getXmlFeed=true","bdnews24 Bangladesh"],
