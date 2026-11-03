@@ -23,76 +23,30 @@ function categoryFor(title: string): string {
   return "World Finance";
 }
 
+function countryFor(title:string,domain:string):string{
+ const v=(title+" "+domain).toLowerCase();
+ const groups:[string,string[]][]=[
+ ["India",["india","indian","rbi","sensex","nifty","mumbai","rupee","moneycontrol","livemint","businessline"]],["China",["china","chinese","beijing","shanghai","yuan","scmp"]],["Japan",["japan","japanese","tokyo","nikkei","yen"]],["South Korea",["south korea","korean","seoul","koreaherald"]],["Singapore",["singapore"]],["Hong Kong",["hong kong"]],["Indonesia",["indonesia","jakarta"]],["Malaysia",["malaysia","kuala lumpur"]],["Thailand",["thailand","bangkok"]],["Vietnam",["vietnam"]],["Pakistan",["pakistan","karachi"]],["Bangladesh",["bangladesh","dhaka"]],["Sri Lanka",["sri lanka","colombo"]],
+ ["Nigeria",["nigeria","lagos"]],["Kenya",["kenya","nairobi"]],["South Africa",["south africa","johannesburg"]],["Egypt",["egypt","cairo"]],["Ghana",["ghana","accra"]],["Morocco",["morocco","casablanca"]],["Ethiopia",["ethiopia"]],
+ ["Germany",["germany","berlin","frankfurt"]],["France",["france","paris"]],["United Kingdom",["united kingdom","britain","london","uk"]],["Italy",["italy","rome","milan"]],["Spain",["spain","madrid"]],["Switzerland",["switzerland","zurich"]],["Netherlands",["netherlands","amsterdam"]],["Ireland",["ireland","dublin"]],["Sweden",["sweden","stockholm"]],["Norway",["norway","oslo"]],["Denmark",["denmark","copenhagen"]],
+ ["United States",["united states","u.s.","wall street","new york","federal reserve"]],["Canada",["canada","toronto"]],["Mexico",["mexico","mexico city"]],["Brazil",["brazil","sao paulo"]],["Argentina",["argentina","buenos aires"]],["Chile",["chile","santiago"]],["Colombia",["colombia","bogota"]],["Peru",["peru","lima"]],["Australia",["australia","sydney","melbourne"]],["New Zealand",["new zealand","auckland"]]
+ ];
+ for(const [name,terms] of groups)if(terms.some(term=>v.includes(term)))return name;
+ return "";
+}
 function regionFor(title: string, domain: string): string {
-  const t = title.toLowerCase(), d = domain.toLowerCase();
-  if (/india|rupee|rbi|sensex|nifty|mumbai|delhi/.test(t) || /moneycontrol|livemint|businessline/.test(d)) return "Asia";
-  if (/china|japan|korea|singapore|hong kong|australia|yuan|yen/.test(t) || /scmp|nikkei/.test(d)) return "Asia-Pacific";
-  if (/europe|eurozone|germany|france|switzerland|ecb|euro /.test(t)) return "Europe";
-  if (/africa|nigeria|kenya|south africa|egypt|rand/.test(t)) return "Africa";
-  if (/brazil|argentina|mexico|latin america|chile/.test(t)) return "Latin America";
-  if (/uae|saudi|qatar|dubai|middle east|riyadh/.test(t)) return "Middle East";
-  if (/united states|u\.s\.|federal reserve|wall street|canada/.test(t)) return "North America";
-  return "Global";
-}
-
-function toIsoDate(value?: string): string {
-  if (!value) return new Date().toISOString();
-  const match = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z?$/);
-  if (match) return new Date(Date.UTC(+match[1], +match[2] - 1, +match[3], +match[4], +match[5], +match[6])).toISOString();
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? new Date().toISOString() : new Date(parsed).toISOString();
-}
-
-export async function GET(request: NextRequest) {
-  const rawQuery = request.nextUrl.searchParams.get("q") ?? "";
-  const query = rawQuery.trim().replace(/\s+/g, " ").slice(0, 120);
-  if (query.length < 2) {
-    return NextResponse.json({ articles: [], error: "Enter at least two characters to search." }, { status: 400 });
-  }
-
-  try {
-    const params = new URLSearchParams({
-      query: query + " sourcelang:english",
-      mode: "ArtList",
-      format: "json",
-      maxrecords: "75",
-      timespan: "30d",
-      sort: "DateDesc"
-    });
-    const response = await fetch("https://api.gdeltproject.org/api/v2/doc/doc?" + params.toString(), {
-      headers: { Accept: "application/json", "User-Agent": "FinanceWorld/1.0 (financial news search)" },
-      cache: "no-store",
-      signal: AbortSignal.timeout(9000)
-    });
-    if (!response.ok) throw new Error("News search provider returned " + response.status);
-    const payload = await response.json() as { articles?: GdeltArticle[] };
-    const articles = (payload.articles ?? [])
-      .filter((item): item is GdeltArticle & { title: string; url: string } => Boolean(item.title && item.url))
-      .map(item => {
-        let domain = item.domain ?? "";
-        try { domain = domain || new URL(item.url).hostname; } catch { domain = "News source"; }
-        domain = domain.replace(/^www\./i, "");
-        return {
-          title: item.title,
-          url: item.url,
-          domain,
-          publishedAt: toIsoDate(item.seendate),
-          image: item.socialimage && /^https?:\/\//i.test(item.socialimage) ? item.socialimage : null,
-          summary: "",
-          category: categoryFor(item.title),
-          region: regionFor(item.title, domain),
-          provider: "GDELT Global Monitor"
-        };
-      });
-    const unique = Array.from(new Map(articles.map(article => [article.url, article])).values()).slice(0, 75);
-    return NextResponse.json(
-      { articles: unique, query, updatedAt: new Date().toISOString(), provider: "GDELT Global Monitor" },
-      { headers: { "Cache-Control": "no-store" } }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      { articles: [], error: error instanceof Error ? error.message : "News search is temporarily unavailable." },
-      { status: 502, headers: { "Cache-Control": "no-store" } }
-    );
-  }
+ const country=countryFor(title,domain);
+ const areas:[string,string[]][]=[
+ ["Asia",["India","China","Japan","South Korea","Singapore","Hong Kong","Indonesia","Malaysia","Thailand","Vietnam","Pakistan","Bangladesh","Sri Lanka","United Arab Emirates","Saudi Arabia","Qatar","Türkiye"]],
+ ["Africa",["Nigeria","Kenya","South Africa","Egypt","Ghana","Morocco","Ethiopia"]],
+ ["Europe",["Germany","France","United Kingdom","Italy","Spain","Switzerland","Netherlands","Ireland","Sweden","Norway","Denmark"]],
+ ["North America",["United States","Canada","Mexico"]],["South America",["Brazil","Argentina","Chile","Colombia","Peru"]],["Oceania",["Australia","New Zealand"]]
+ ];
+ for(const [region,countries] of areas)if(countries.includes(country))return region;
+ const v=(title+" "+domain).toLowerCase();
+ if(v.includes("africa"))return "Africa";if(v.includes("europe")||v.includes("eurozone")||v.includes("ecb"))return "Europe";
+ if(v.includes("south america")||v.includes("latin america"))return "South America";if(v.includes("oceania")||v.includes("pacific islands"))return "Oceania";
+ if(v.includes("asia")||v.includes("asean")||v.includes("middle east"))return "Asia";
+ if(v.includes("united states")||v.includes("u.s.")||v.includes("wall street")||v.includes("canada"))return "North America";
+ return "Global";
 }
