@@ -81,7 +81,7 @@ function countryFor(domain:string,title:string):string{
   ["deccanchronicle.com","India"],["dawn.com","Pakistan"],["businessday.ng","Nigeria"],
   ["businessdailyafrica.com","Kenya"],["moneyweb.co.za","South Africa"],["businesstech.co.za","South Africa"],
   ["channelnewsasia.com","Singapore"],["thedailystar.net","Bangladesh"],["tbsnews.net","Bangladesh"],
-  ["bdnews24.com","Bangladesh"],
+  ["bdnews24.com","Bangladesh"],["folha.uol.com.br","Brazil"],["riotimesonline.com","Brazil"],
   ["scmp.com","Hong Kong"],["koreaherald.com","South Korea"],["abc.net.au","Australia"],
   ["japantimes.co.jp","Japan"],["sec.gov","United States"],
   ["federalreserve.gov","United States"],["bankofcanada.ca","Canada"],
@@ -154,6 +154,7 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  return parsed;
 }
 const finance=/\b(financ|market|stock|shares|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\b/i;
+const multilingualFinance=/经济|市场|股票|股市|银行|投资|通胀|财报|企业|贸易|利率|货币|债券|経済|市場|株式|銀行|投資|インフレ|企業|利益|為替|貿易|金利|경제|시장|주식|은행|투자|물가|기업|수익|환율|무역|금리|اقتصاد|سوق|أسهم|بنك|استثمار|تضخم|شركة|أرباح|عملة|تجارة|فائدة|سندات|econom[ií]a|mercado|acciones|banco|inversi[oó]n|inflaci[oó]n|empresa|beneficio|ganancias|bolsa|divisa|deuda|economia|ações|investimento|inflação|lucro|receita|câmbio|juros|dívida|économie|marché|banque|investissement|bénéfice|bourse|taux|dette|wirtschaft|markt|aktien|investition|unternehmen|gewinn|umsatz|börse|zinsen|schulden/i;
 const sources=[
  ["https://www.sec.gov/news/pressreleases.rss","U.S. SEC"],
  ["https://www.federalreserve.gov/feeds/press_all.xml","Federal Reserve"],
@@ -187,6 +188,8 @@ const sources=[
  ["https://www.indiatoday.in/rss/home","India Today"],
  ["https://www.freepressjournal.in/stories.rss","Free Press Journal"],
  ["https://www.deccanchronicle.com/rss_feed/","Deccan Chronicle"],
+ ["https://feeds.folha.uol.com.br/emcimadahora/rss091.xml","Folha Brazil"],
+ ["https://riotimesonline.com/feed/","The Rio Times"],
  ["https://www.dawn.com/feeds/business","Dawn Business"],
  ["https://businessday.ng/feed/","BusinessDay Nigeria"],
  ["https://www.businessdailyafrica.com/service/rss/bd/1939132/feed.rss","Business Daily Africa"],
@@ -241,7 +244,7 @@ export async function GET(){
   if(!a.url)return false;
   const title=a.title.toLowerCase();
   const withoutWestBank=title.replace(/\bwest bank\b/g," ");
-  if(!finance.test(withoutWestBank))return false;
+  if(!finance.test(withoutWestBank)&&!multilingualFinance.test(withoutWestBank))return false;
   const alcoholContext=/\b(alcohol|liquor|beer|wine|spirits|tobacco|cigarette)\b/i.test(title);
   const clearFinance=/\b(stock|market|shares|revenue|profit|earnings|sales|investment|company|business|price|ipo|valuation|dividend)\b/i.test(title);
   if(alcoholContext&&!clearFinance)return false;
