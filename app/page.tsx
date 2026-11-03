@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowUpRight, Clock3, Search, TrendingUp } from "lucide-react";
 import MarketTicker from "../components/MarketTicker";
+import { WORLD_COUNTRIES } from "../lib/countries";
 
 type Article = { title:string; url:string; domain:string; publishedAt:string; image:string|null; summary:string; category:string; provider:string; region?:string; country?:string };
 const categories=["All","World Finance","Economy","Banking","Markets","Business","Crypto","Forex","Commodities","Real Estate","Fintech"];
 const regions=["All Regions","Global","Asia","Africa","Europe","North America","South America","Oceania"];
-const countries=["All Countries","India","China","Japan","South Korea","Singapore","Hong Kong","Indonesia","Malaysia","Thailand","Vietnam","Pakistan","Bangladesh","Sri Lanka","Nigeria","Kenya","South Africa","Egypt","Ghana","Morocco","Ethiopia","Germany","France","United Kingdom","Italy","Spain","Switzerland","Netherlands","Ireland","Sweden","Norway","Denmark","United States","Canada","Mexico","Brazil","Argentina","Chile","Colombia","Peru","Australia","New Zealand","United Arab Emirates","Saudi Arabia","Qatar","Türkiye"];
+const countries=["All Countries",...WORLD_COUNTRIES.map(country=>country.name)];
 function formatDate(value:string){if(!value)return "Recently";const d=new Date(value);return Number.isNaN(d.getTime())?value:d.toLocaleString("en",{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC";}
 function categoryImage(category:string){
  const images:Record<string,string>={Markets:"https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1000&q=80",Economy:"https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=1000&q=80",Business:"https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1000&q=80",Crypto:"https://images.unsplash.com/photo-1518546305927-5a555bb7020d?auto=format&fit=crop&w=1000&q=80",Banking:"https://images.unsplash.com/photo-1444653614773-995cb1ef9efa?auto=format&fit=crop&w=1000&q=80"};
