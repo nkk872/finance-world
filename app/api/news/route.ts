@@ -6,7 +6,27 @@ export const revalidate=600;
 
 function decodeXml(v:string){return v.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(parseInt(n,10))).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
 function tagText(b:string,t:string){const m=b.match(new RegExp("<"+t+"(?:\\s[^>]*)?>([\\s\\S]*?)</"+t+">","i"));return m?decodeXml(m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ")):"";}
-function imageFrom(b:string){const a=[b.match(/<media:content[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<media:thumbnail[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<enclosure[^>]+url=["']([^"']+)["']/i)?.[1],b.match(/<img[^>]+src=["']([^"']+)["']/i)?.[1]];return a.find(v=>v&&/^https?:\/\//i.test(v))??null;}
+function imageFrom(b:string){
+ const decoded=decodeXml(b);
+ const candidates:string[]=[];
+ const add=(value?:string)=>{if(!value)return;const cleaned=value.trim();if(cleaned.startsWith("//"))candidates.push("https:"+cleaned);else if(/^https?:\/\//i.test(cleaned))candidates.push(cleaned);};
+ const mediaTags=decoded.match(/<(?:media:content|media:thumbnail|enclosure)\b[^>]*>/gi)??[];
+ for(const tag of mediaTags){
+  const url=tag.match(/\b(?:url|href|src)=["']([^"']+)["']/i)?.[1];
+  const type=tag.match(/\btype=["']([^"']+)["']/i)?.[1]??"";
+  if(url&&(!type||type.toLowerCase().startsWith("image/")))add(url);
+ }
+ const imageTags=decoded.match(/<img\b[^>]*>/gi)??[];
+ for(const tag of imageTags){
+  add(tag.match(/\b(?:src|data-src|data-original)=["']([^"']+)["']/i)?.[1]);
+  const srcset=tag.match(/\bsrcset=["']([^"']+)["']/i)?.[1];
+  if(srcset)add(srcset.split(",")[0]?.trim().split(/\s+/)[0]);
+ }
+ const metaImage=decoded.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)?.[1]
+  ??decoded.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i)?.[1];
+ add(metaImage);
+ return candidates.find(v=>!/^data:/i.test(v))??null;
+}
 function categoryFor(title:string):string{const t=title.toLowerCase();
  if(/crypto|bitcoin|ethereum|blockchain|token|stablecoin|defi|web3/.test(t))return "Crypto";
  if(/bank|central bank|interest rate|loan|credit|mortgage|deposit|lender/.test(t))return "Banking";
