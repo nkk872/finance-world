@@ -8,7 +8,7 @@ export const revalidate=600;
 function decodeXml(v:string){return v.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(parseInt(n,10))).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
 function tagText(b:string,t:string){
  const local=t.split(":").pop()||t;
- const m=b.match(new RegExp("<(?:[\\w.-]+:)?" + local + "(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[\\w.-]+:)?" + local + ">","i"));
+ const m=b.match(new RegExp("<(?:[\\w.-]+:)?" + local + "(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[\\w.-]+:)?" + local + "\\s*>","i"));
  return m?decodeXml(m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ")):"";
 }
 function imageFrom(b:string){
@@ -127,9 +127,9 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  const response=await fetch(feedUrl,{headers:{Accept:"application/rss+xml, application/atom+xml, application/xml, text/xml","User-Agent":"FinanceWorld/1.0 (global financial news aggregator)"},cache:"no-store",signal:AbortSignal.timeout(5500)});
  if(!response.ok)throw new Error(provider+" feed failed: "+response.status);
  const xml=await response.text();
- const rssItems=xml.match(/<item[^>]*>[\s\S]*?<\/item>/gi)??[];
- const atomItems=xml.match(/<entry[^>]*>[\s\S]*?<\/entry>/gi)??[];
- const rdfItems=xml.match(/<rdf:Description[^>]*>[\s\S]*?<\/rdf:Description>/gi)??[];
+ const rssItems=xml.match(/<item[^>]*>[\s\S]*?<\/item\s*>/gi)??[];
+ const atomItems=xml.match(/<entry[^>]*>[\s\S]*?<\/entry\s*>/gi)??[];
+ const rdfItems=xml.match(/<rdf:Description[^>]*>[\s\S]*?<\/rdf:Description\s*>/gi)??[];
  const blocks=[...rssItems,...atomItems,...rdfItems].slice(0,35);
  const parsed=blocks.map((b):Article|null=>{
   const title=tagText(b,"title");
