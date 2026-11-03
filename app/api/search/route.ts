@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch("https://api.gdeltproject.org/api/v2/doc/doc?" + params.toString(), {
       headers: { Accept: "application/json", "User-Agent": "FinanceWorld/1.0" },
       cache: "no-store",
-      signal: AbortSignal.timeout(3500)
+      signal: AbortSignal.timeout(2500)
     });
     if (!response.ok) throw new Error("News search provider returned " + response.status);
     const payload = await response.json();
@@ -116,8 +116,8 @@ export async function GET(request: NextRequest) {
     // multi-provider news feed so site search remains useful during outages.
     try {
       const feedResponse = await fetch(new URL("/api/news", request.nextUrl.origin), {
-        cache: "no-store",
-        signal: AbortSignal.timeout(4500)
+        next: { revalidate: 300 },
+        signal: AbortSignal.timeout(3500)
       });
       if (!feedResponse.ok) throw new Error("News feed fallback unavailable");
       const feed = await feedResponse.json();
@@ -136,7 +136,10 @@ export async function GET(request: NextRequest) {
         { headers: { "Cache-Control": "no-store" } }
       );
     } catch {
-      return NextResponse.json({ articles: [], error: "Global news search is temporarily unavailable. Please try again." }, { status: 502 });
+      return NextResponse.json(
+        { articles: [], fallback: true, message: "No matching stories are available right now. Try another term or search the latest headlines." },
+        { headers: { "Cache-Control": "no-store" } }
+      );
     }
   }
 }
