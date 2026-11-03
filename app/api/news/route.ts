@@ -30,21 +30,21 @@ function imageFrom(b:string){
 }
 function categoryFor(title:string):string{const t=title.toLowerCase();
  if(/crypto|bitcoin|ethereum|blockchain|token|stablecoin|defi|web3/.test(t))return "Crypto";
- if(/bank|central bank|interest rate|loan|credit|mortgage|deposit|lender/.test(t))return "Banking";
+ if(/central bank|interest rate|loan|credit|mortgage|deposit|lender|banking|\bbank\b/.test(t.replace(/\bwest bank\b/g," ")))return "Banking";
  if(/inflation|gdp|econom|jobs|employment|trade|tariff|recession|budget|fiscal|monetary|consumer price/.test(t))return "Economy";
  if(/forex|currency|exchange rate|dollar|euro|yen|rupee/.test(t))return "Forex";
  if(/gold|silver|oil|gas|commodity|copper|wheat|crude/.test(t))return "Commodities";
  if(/real estate|property|housing|home price|commercial property/.test(t))return "Real Estate";
  if(/fintech|payment|digital banking|artificial intelligence|technology/.test(t))return "Fintech";
  if(/company|business|earnings|revenue|profit|merger|ipo|ceo|corporate/.test(t))return "Business";
- if(/stock|share|equity|bond|market|exchange|index|investor/.test(t))return "Markets";
+ if(/stock|shares|equity|bond|market|exchange|index|investor/.test(t))return "Markets";
  return "World Finance";
 }
 function countryFor(domain:string,title:string):string{
  const v=(title+" "+domain).toLowerCase();
  const groups:[string,string[]][]=[
  ["India",["india","indian","rbi","sensex","nifty","mumbai","delhi","rupee","moneycontrol","livemint","businessline"]],
- ["China",["china","chinese","beijing","shanghai","yuan","scmp"]],
+ ["China",["china","chinese","beijing","shanghai","yuan"]],
  ["Japan",["japan","japanese","tokyo","nikkei","yen"]],
  ["South Korea",["south korea","korean","seoul","won","koreaherald"]],
  ["Singapore",["singapore"]],["Hong Kong",["hong kong"]],
@@ -138,7 +138,7 @@ async function fromGdelt(query:string):Promise<Article[]>{
  const payload=await response.json();
  return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>{const domain=cleanDomain(a.domain??new URL(a.url!).hostname);const country=countryFromCode(a.sourcecountry)||countryFor(domain,a.title!);const region=regionFromCountryCode(a.sourcecountry)||regionFor(domain,a.title!);return {title:a.title!,url:a.url!,domain,publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT Global Monitor",summary:"",category:categoryFor(a.title!),region,country};});
 }
-const finance=/\b(financ|market|stock|share|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\b/i;
+const finance=/\b(financ|market|stock|shares|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\b/i;
 const sources=[
  ["https://www.sec.gov/news/pressreleases.rss","U.S. SEC"],
  ["https://www.federalreserve.gov/feeds/press_all.xml","Federal Reserve"],
@@ -197,7 +197,14 @@ export async function GET(){
  const results=await Promise.allSettled(tasks);
  const articles=results.flatMap(r=>r.status==="fulfilled"?r.value:[]);
  const cutoff=Date.now()-30*24*60*60*1000;
- const unique=Array.from(new Map(articles.filter(a=>{if(!a.url||!finance.test(a.title))return false;const published=Date.parse(a.publishedAt);return Number.isFinite(published)&&published>=cutoff&&published<=Date.now()+24*60*60*1000;}).map(a=>[a.url,a])).values())
+ const unique=Array.from(new Map(articles.filter(a=>{
+  if(!a.url)return false;
+  const title=a.title.toLowerCase();
+  const withoutWestBank=title.replace(/\bwest bank\b/g," ");
+  if(!finance.test(withoutWestBank))return false;
+  const published=Date.parse(a.publishedAt);
+  return Number.isFinite(published)&&published>=cutoff&&published<=Date.now()+24*60*60*1000;
+ }).map(a=>[a.url,a])).values())
   .sort((a,b)=>Date.parse(b.publishedAt||"")-Date.parse(a.publishedAt||"")).slice(0,1000);
  const providers=Array.from(new Set(unique.map(a=>a.provider)));
  if(!unique.length)return NextResponse.json({articles:[],providers:[],error:"Global financial news providers are temporarily unavailable. Please refresh shortly."},{status:503,headers:{"Cache-Control":"no-store"}});
