@@ -1,5 +1,8 @@
 import { countryFromCode, regionFromCountryCode } from "../../../lib/countries";
 import { NextRequest, NextResponse } from "next/server";
+import { GET as getNewsFeed } from "../news/route";
+
+export const maxDuration = 10;
 
 type GdeltArticle = {
   title?: string;
@@ -112,13 +115,11 @@ export async function GET(request: NextRequest) {
       });
     return NextResponse.json({ articles, updatedAt: new Date().toISOString() }, { headers: { "Cache-Control": "no-store" } });
   } catch {
-    // GDELT can be intermittently slow or unavailable. Fall back to the live
-    // multi-provider news feed so site search remains useful during outages.
+    // Use the same multi-provider feed directly instead of making a server
+    // request back into this deployment (which can be blocked by deployment
+    // protection on preview URLs).
     try {
-      const feedResponse = await fetch(new URL("/api/news", request.nextUrl.origin), {
-        next: { revalidate: 300 },
-        signal: AbortSignal.timeout(3500)
-      });
+      const feedResponse = await getNewsFeed();
       if (!feedResponse.ok) throw new Error("News feed fallback unavailable");
       const feed = await feedResponse.json();
       const needle = term.toLowerCase().replace(/s$/, "");
@@ -137,7 +138,7 @@ export async function GET(request: NextRequest) {
       );
     } catch {
       return NextResponse.json(
-        { articles: [], fallback: true, message: "No matching stories are available right now. Try another term or search the latest headlines." },
+        { articles: [], fallback: true, message: "Search is temporarily unavailable. Please try again shortly." },
         { headers: { "Cache-Control": "no-store" } }
       );
     }
