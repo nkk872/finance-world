@@ -1,8 +1,6 @@
-import { countryFromCode, regionFromCountryCode, WORLD_COUNTRIES } from "../../../lib/countries";
 import { NextResponse } from "next/server";
 
 type Article={title:string;url:string;domain:string;publishedAt:string;image:string|null;provider:string;summary:string;category:string;region:string;country:string};
-type GdeltArticle={title?:string;url?:string;domain?:string;seendate?:string;socialimage?:string;sourcecountry?:string};
 export const revalidate=600;
 
 function decodeXml(v:string){return v.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(parseInt(n,10))).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
@@ -152,13 +150,6 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  }
  return parsed;
 }
-async function fromGdelt(query:string):Promise<Article[]>{
- const params=new URLSearchParams({query:query,mode:"ArtList",format:"json",maxrecords:"75",timespan:"3d",sort:"DateDesc"});
- const response=await fetch("https://api.gdeltproject.org/api/v2/doc/doc?"+params,{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0"},cache:"no-store",signal:AbortSignal.timeout(7000)});
- if(!response.ok)throw new Error("GDELT failed: "+response.status);
- const payload=await response.json();
- return ((payload.articles??[]) as GdeltArticle[]).filter(a=>a.title&&a.url).map(a=>{const domain=cleanDomain(a.domain??new URL(a.url!).hostname);const country=countryFromCode(a.sourcecountry)||countryFor(domain,a.title!);const region=regionFromCountryCode(a.sourcecountry)||regionFor(domain,a.title!);return {title:a.title!,url:a.url!,domain,publishedAt:a.seendate??"",image:a.socialimage??null,provider:"GDELT Global Monitor",summary:"",category:categoryFor(a.title!),region,country};});
-}
 const finance=/\b(financ|market|stock|shares|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\b/i;
 const sources=[
  ["https://www.sec.gov/news/pressreleases.rss","U.S. SEC"],
@@ -219,18 +210,7 @@ const sources=[
 export const maxDuration = 10;
 
 export async function GET(){
- const financialTerms='(finance OR "stock market" OR banking OR economy OR investment OR currency OR trade OR earnings)';
- const regions=["Asia","Africa","Europe","North America","South America","Oceania"];
- const regionalQueries=regions.map(region=>{
-  const names=WORLD_COUNTRIES.filter(item=>regionFromCountryCode(item.code)===region).map(item=>'"'+item.name+'"');
-  return '('+names.join(' OR ')+') '+financialTerms;
- });
- const gdeltQueries=[
-  '(finance OR "stock market" OR banking OR investment OR earnings OR economy OR inflation OR GDP)',
-  ...regionalQueries,
-  '(cryptocurrency OR bitcoin OR blockchain OR fintech OR forex OR currency OR gold OR silver OR oil OR commodities)'
- ];
- const tasks=[...sources.map(([url,name])=>fromRss(url,name)),...gdeltQueries.map(q=>fromGdelt(q))];
+ const tasks=sources.map(([url,name])=>fromRss(url,name));
  const results=await Promise.allSettled(tasks);
  const articles=results.flatMap(r=>r.status==="fulfilled"?r.value:[]);
  const cutoff=Date.now()-30*24*60*60*1000;
@@ -256,14 +236,6 @@ export async function GET(){
     financialStories:unique.filter(article=>article.provider===name).length,
     error:results[i]?.status==="rejected"?String(results[i].reason?.message??"").slice(0,120):undefined
   })),
-  gdeltStatus:gdeltQueries.map((_,i)=>{
-    const result=results[sources.length+i];
-    return {
-      region:i===0?"Global":regions[i-1]??"Special topics",
-      status:result?.status==="fulfilled"?"ok":"unavailable",
-      itemsReceived:result?.status==="fulfilled"?result.value.length:0,
-      error:result?.status==="rejected"?String(result.reason?.message??"").slice(0,120):undefined
-    };
-  })
+  gdeltStatus:{status:"temporarily_disabled",reason:"GDELT requests timed out from this deployment; live RSS publishers remain active."}
 },{headers:{"Cache-Control":"s-maxage=600, stale-while-revalidate=1800"}});
 }
