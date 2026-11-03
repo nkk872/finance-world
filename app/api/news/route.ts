@@ -77,8 +77,8 @@ function countryFor(domain:string,title:string):string{
  const host=domain.toLowerCase().replace(/^www\./,"").split("/")[0];
  const publisherDomains:[string,string][]=[
   ["moneycontrol.com","India"],["business-standard.com","India"],["livemint.com","India"],
-  ["economictimes.indiatimes.com","India"],["thehindubusinessline.com","India"],
-  ["financialexpress.com","India"],["hindustantimes.com","India"],["firstpost.com","India"],
+  ["indianexpress.com","India"],["indiatoday.in","India"],["freepressjournal.in","India"],
+  ["deccanchronicle.com","India"],
   ["scmp.com","Hong Kong"],["koreaherald.com","South Korea"],["abc.net.au","Australia"],
   ["japantimes.co.jp","Japan"],["sec.gov","United States"],
   ["federalreserve.gov","United States"],["bankofcanada.ca","Canada"],
@@ -162,8 +162,8 @@ const sources=[
  ["https://www.theguardian.com/business/rss","The Guardian Business"],
  ["https://www.coindesk.com/arc/outboundfeeds/rss/","CoinDesk"],
  ["https://cointelegraph.com/rss","Cointelegraph"],
- ["https://www.business-standard.com/rss/latest.rss","Business Standard Latest"],
- ["https://www.business-standard.com/rss/home_page_top_stories.rss","Business Standard Top Stories"],
+
+
  ["https://www.scmp.com/rss/91/feed","South China Morning Post Business"],
  ["https://www.bankofcanada.ca/feed/press-releases/","Bank of Canada"],
  ["https://www.cnbc.com/id/10001147/device/rss/rss.html","CNBC World Markets"],
@@ -174,6 +174,16 @@ const sources=[
  ["https://rss.dw.com/rdf/rss-en-bus","DW Business"],
  ["https://www.france24.com/en/rss","France 24"],
  ["https://www.abc.net.au/news/feed/51120/rss.xml","ABC Australia Business"],
+ ["https://www.moneycontrol.com/rss/latestnews.xml","Moneycontrol Latest"],
+ ["https://indianexpress.com/section/business/feed/","Indian Express Business"],
+ ["https://indianexpress.com/section/business/banking-and-finance/feed/","Indian Express Banking and Finance"],
+ ["https://indianexpress.com/section/business/companies/feed/","Indian Express Companies"],
+ ["https://indianexpress.com/section/business/commodities/feed/","Indian Express Commodities"],
+ ["https://indianexpress.com/section/personal-finance/feed/","Indian Express Personal Finance"],
+ ["https://indianexpress.com/section/india/feed/","Indian Express India"],
+ ["https://www.indiatoday.in/rss/home","India Today"],
+ ["https://www.freepressjournal.in/stories.rss","Free Press Journal"],
+ ["https://www.deccanchronicle.com/rss_feed/","Deccan Chronicle"],
  ["https://www.investing.com/rss/news_25.rss","Investing.com Economy"],
  ["https://www.investing.com/rss/news_1.rss","Investing.com Markets"],
  ["https://www.investing.com/rss/news_301.rss","Investing.com Crypto"],
@@ -183,24 +193,24 @@ const sources=[
  ["https://www.ft.com/?format=rss","Financial Times"],
  ["https://feeds.marketwatch.com/marketwatch/topstories/","MarketWatch"],
  ["https://feeds.marketwatch.com/marketwatch/marketpulse/","MarketWatch Market Pulse"],
- ["https://www.thehindubusinessline.com/feeder/default.rss","The Hindu BusinessLine"],
- ["https://www.thehindubusinessline.com/markets/feeder/default.rss","BusinessLine Markets"],
- ["https://www.thehindubusinessline.com/economy/feeder/default.rss","BusinessLine Economy"],
- ["https://www.thehindubusinessline.com/companies/feeder/default.rss","BusinessLine Companies"],
- ["https://www.thehindubusinessline.com/markets/stock-markets/feeder/default.rss","BusinessLine Stocks"],
- ["https://www.thehindubusinessline.com/money-and-banking/feeder/default.rss","BusinessLine Money and Banking"],
- ["https://www.thehindu.com/business/feeder/default.rss","The Hindu Business"],
- ["https://www.thehindu.com/business/markets/feeder/default.rss","The Hindu Markets"],
- ["https://www.thehindu.com/business/Economy/feeder/default.rss","The Hindu Economy"],
- ["https://www.thehindu.com/business/Industry/feeder/default.rss","The Hindu Industry"],
- ["https://economictimes.indiatimes.com/rssfeedstopstories.cms","Economic Times"],
- ["https://www.livemint.com/rss/markets","Mint Markets"],
- ["https://www.livemint.com/rss/money","Mint Money"],
- ["https://www.livemint.com/rss/news","Mint News"],
- ["https://www.financialexpress.com/feed/","Financial Express"],
- ["https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml","Hindustan Times India"],
- ["https://feeds.bbci.co.uk/news/world/asia/india/rss.xml","BBC India"],
- ["https://www.firstpost.com/commonfeeds/v1/mfp/rss/india.xml","Firstpost India"],
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  ["https://www.japantimes.co.jp/feed/","The Japan Times"],
  ["https://www.koreaherald.com/rss/011.xml","Korea Herald Business"],
  ["https://www.africanews.com/feed/rss","Africanews"],
