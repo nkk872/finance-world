@@ -6,7 +6,11 @@ type GdeltArticle={title?:string;url?:string;domain?:string;seendate?:string;soc
 export const revalidate=600;
 
 function decodeXml(v:string){return v.replace(/<!\[CDATA\[|\]\]>/g,"").replace(/&#x([0-9a-f]+);/gi,(_,n)=>String.fromCodePoint(parseInt(n,16))).replace(/&#(\d+);/g,(_,n)=>String.fromCodePoint(parseInt(n,10))).replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;|&apos;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">").trim();}
-function tagText(b:string,t:string){const m=b.match(new RegExp("<"+t+"(?:\\s[^>]*)?>([\\s\\S]*?)</"+t+">","i"));return m?decodeXml(m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ")):"";}
+function tagText(b:string,t:string){
+ const local=t.split(":").pop()||t;
+ const m=b.match(new RegExp("<(?:[\\w.-]+:)?" + local + "(?:\\s[^>]*)?>([\\s\\S]*?)</(?:[\\w.-]+:)?" + local + ">","i"));
+ return m?decodeXml(m[1].replace(/<[^>]+>/g," ").replace(/\s+/g," ")):"";
+}
 function imageFrom(b:string){
  const decoded=decodeXml(b);
  const candidates:string[]=[];
@@ -125,20 +129,24 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  const xml=await response.text();
  const rssItems=xml.match(/<item[^>]*>[\s\S]*?<\/item>/gi)??[];
  const atomItems=xml.match(/<entry[^>]*>[\s\S]*?<\/entry>/gi)??[];
- const blocks=[...rssItems,...atomItems].slice(0,35);
- return blocks.map((b):Article|null=>{
+ const rdfItems=xml.match(/<rdf:Description[^>]*>[\s\S]*?<\/rdf:Description>/gi)??[];
+ const blocks=[...rssItems,...atomItems,...rdfItems].slice(0,35);
+ const parsed=blocks.map((b):Article|null=>{
   const title=tagText(b,"title");
-  const linkTag=b.match(/<link[^>]*>/i)?.[0]??"";
+  const linkTag=b.match(/<(?:atom:)?link[^>]*>/i)?.[0]??"";
   const href=linkTag.match(/\bhref=["']([^"']+)["']/i)?.[1]??"";
-  const url=tagText(b,"link")||href||tagText(b,"guid")||"";
+  const about=b.match(/<(?:rdf:)?(?:item|Description)\b[^>]*about=["']([^"']+)["']/i)?.[1]??"";
+  const url=tagText(b,"link")||tagText(b,"atom:link")||href||tagText(b,"guid")||about||"";
   if(!title||!url)return null;
   let domain="";
   try { domain=new URL(url).hostname; } catch { domain=tagText(b,"source")||provider; }
   const summary=tagText(b,"description")||tagText(b,"summary")||tagText(b,"content:encoded")||tagText(b,"content");
-  const publishedAt=tagText(b,"pubDate")||tagText(b,"published")||tagText(b,"updated")||tagText(b,"dc:date");
+  const publishedAt=tagText(b,"pubDate")||tagText(b,"published")||tagText(b,"updated")||tagText(b,"date");
   const clean=cleanDomain(domain);
   return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,5000),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
  }).filter((a):a is Article=>a!==null);
+ if(!parsed.length)throw new Error(provider+" feed contained no parseable RSS/Atom items");
+ return parsed;
 }
 async function fromGdelt(query:string):Promise<Article[]>{
  const params=new URLSearchParams({query:query,mode:"ArtList",format:"json",maxrecords:"250",timespan:"7d",sort:"DateDesc"});
