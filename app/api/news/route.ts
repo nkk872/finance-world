@@ -147,7 +147,7 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  }).filter((a):a is Article=>a!==null);
  if(!parsed.length){
   const contentType=response.headers.get("content-type")||"unknown";
-  const rootTag=xml.match(/<([a-zA-Z][\\w:.-]*)\\b/)?.[1]||"none";
+  const rootTag=xml.match(/<([a-zA-Z][\w:.-]*)\b/)?.[1]||"none";
   throw new Error(provider+" feed not recognized ("+contentType+", root "+rootTag+")");
  }
  return parsed;
