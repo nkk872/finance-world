@@ -49,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     if (response.ok) {
       const data = await response.json();
       const articles: NewsArticle[] = Array.isArray(data.articles) ? data.articles : [];
-      const articlePages = articles.slice(0, 100).flatMap(article => {
+      const articlePages = articles.slice(0, 200).flatMap(article => {
         const url = articlePath(article);
         if (!url) return [];
         const published = article.publishedAt ? new Date(article.publishedAt) : now;
