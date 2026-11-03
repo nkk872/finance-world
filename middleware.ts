@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
+  // Let the private newsroom login screen load. The newsroom data endpoint
+  // independently checks NEWSROOM_ADMIN_TOKEN using a timing-safe comparison.
+  // This avoids a second, browser-level Basic Auth prompt before the owner form.
+  if (request.nextUrl.pathname === "/admin/newsroom") {
+    return NextResponse.next();
+  }
+
   const expected = process.env.NEWSROOM_ADMIN_TOKEN;
   const authorization = request.headers.get("authorization") ?? "";
-  const match = authorization.match(/^Basic\s+(.+)$/i);
+  const match = authorization.match(/^Basic\\s+(.+)$/i);
   let supplied = "";
   if (match) {
     try {
