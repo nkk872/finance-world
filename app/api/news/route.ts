@@ -229,6 +229,9 @@ export async function GET(){
   const title=a.title.toLowerCase();
   const withoutWestBank=title.replace(/\bwest bank\b/g," ");
   if(!finance.test(withoutWestBank))return false;
+  const alcoholContext=/\b(alcohol|liquor|beer|wine|spirits|tobacco|cigarette)\b/i.test(title);
+  const clearFinance=/\b(stock|market|shares|revenue|profit|earnings|sales|investment|company|business|price|ipo|valuation|dividend)\b/i.test(title);
+  if(alcoholContext&&!clearFinance)return false;
   const published=Date.parse(a.publishedAt);
   return Number.isFinite(published)&&published>=cutoff&&published<=Date.now()+24*60*60*1000;
  }).map(a=>[a.url,a])).values())
