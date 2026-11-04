@@ -130,7 +130,7 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  const xml=await response.text();
  const rssItems=xml.match(/<(?:[\w.-]+:)?item\b[^>]*>[\s\S]*?<\/(?:[\w.-]+:)?item\s*>/gi)??[];
  const atomItems=xml.match(/<(?:[\w.-]+:)?entry\b[^>]*>[\s\S]*?<\/(?:[\w.-]+:)?entry\s*>/gi)??[];
- const rdfItems=xml.match(/<rdf:Description[^>]*>[\s\S]*?<\/rdf:Description\s*>/gi)??[];
+ const rdfItems=xml.match(/<(?:[\w.-]+:)?Description\b[^>]*>[\s\S]*?<\/(?:[\w.-]+:)?Description\s*>/gi)??[];
  const blocks=[...rssItems,...atomItems,...rdfItems].slice(0,35);
  const parsed=blocks.map((b):Article|null=>{
   const title=tagText(b,"title");
@@ -144,7 +144,8 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
   })??linkTags.find(tag=>/\bhref=["']/i.test(tag))??"";
   const href=preferredLink.match(/\bhref=["']([^"']+)["']/i)?.[1]??"";
   const about=b.match(/<(?:rdf:)?(?:item|Description)\b[^>]*about=["']([^"']+)["']/i)?.[1]??"";
-  const rawUrl=tagText(b,"link")||href||tagText(b,"guid")||about||"";
+  const linkResource=preferredLink.match(/\b(?:rdf:)?resource=["']([^"']+)["']/i)?.[1]??"";
+  const rawUrl=tagText(b,"link")||href||linkResource||tagText(b,"guid")||about||"";
   if(!title||!rawUrl)return null;
   let url="";
   try {
