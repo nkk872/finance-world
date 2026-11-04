@@ -157,7 +157,7 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
   // Prefer full-content/summary fields before short descriptions. Strip markup
   // and decode entities without inventing missing article facts.
   const summaryRaw=tagText(b,"content:encoded")||tagText(b,"content")||tagText(b,"summary")||tagText(b,"description");
-  const summary=decodeXml(summaryRaw.replace(/<\\/?(?:p|br|div|li|h[1-6])\\b[^>]*>/gi," ").replace(/<[^>]*>/g," ")).replace(/\\s+/g," ").trim();
+  const summary=decodeXml(summaryRaw.replace(/<\/?(?:p|br|div|li|h[1-6])\b[^>]*>/gi," ").replace(/<[^>]*>/g," ")).replace(/\s+/g," ").trim();
   const publishedAt=tagText(b,"pubDate")||tagText(b,"published")||tagText(b,"updated")||tagText(b,"date")||tagText(b,"dc:date");
   const clean=cleanDomain(domain);
   return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,500),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
