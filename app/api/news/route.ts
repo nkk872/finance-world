@@ -134,15 +134,31 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  const blocks=[...rssItems,...atomItems,...rdfItems].slice(0,35);
  const parsed=blocks.map((b):Article|null=>{
   const title=tagText(b,"title");
-  const linkTag=b.match(/<(?:atom:)?link[^>]*>/i)?.[0]??"";
-  const href=linkTag.match(/\bhref=["']([^"']+)["']/i)?.[1]??"";
-  const about=b.match(/<(?:rdf:)?(?:item|Description)\b[^>]*about=["']([^"']+)["']/i)?.[1]??"";
-  const url=tagText(b,"link")||tagText(b,"atom:link")||href||tagText(b,"guid")||about||"";
-  if(!title||!url)return null;
+  // Atom feeds can expose several links (self, alternate, enclosure).
+  // Prefer the actual article URL rather than blindly taking the first link.
+  const linkTags=b.match(/<(?:[\\w.-]+:)?link\\b[^>]*>/gi)??[];
+  const preferredLink=linkTags.find(tag=>{
+   const rel=tag.match(/\\brel=["']([^"']+)["']/i)?.[1]?.toLowerCase();
+   const type=tag.match(/\\btype=["']([^"']+)["']/i)?.[1]?.toLowerCase()??"";
+   return (!rel||rel==="alternate")&&(!type||type.includes("html"));
+  })??linkTags.find(tag=>/\\bhref=["']/i.test(tag))??"";
+  const href=preferredLink.match(/\\bhref=["']([^"']+)["']/i)?.[1]??"";
+  const about=b.match(/<(?:rdf:)?(?:item|Description)\\b[^>]*about=["']([^"']+)["']/i)?.[1]??"";
+  const rawUrl=tagText(b,"link")||href||tagText(b,"guid")||about||"";
+  if(!title||!rawUrl)return null;
+  let url="";
+  try {
+   const resolved=new URL(decodeXml(rawUrl),feedUrl);
+   if(resolved.protocol==="https:"||resolved.protocol==="http:")url=resolved.toString();
+  } catch {}
+  if(!url)return null;
   let domain="";
   try { domain=new URL(url).hostname; } catch { domain=tagText(b,"source")||provider; }
-  const summary=tagText(b,"description")||tagText(b,"summary")||tagText(b,"content:encoded")||tagText(b,"content");
-  const publishedAt=tagText(b,"pubDate")||tagText(b,"published")||tagText(b,"updated")||tagText(b,"date");
+  // Prefer full-content/summary fields before short descriptions. Strip markup
+  // and decode entities without inventing missing article facts.
+  const summaryRaw=tagText(b,"content:encoded")||tagText(b,"content")||tagText(b,"summary")||tagText(b,"description");
+  const summary=decodeXml(summaryRaw.replace(/<\\/?(?:p|br|div|li|h[1-6])\\b[^>]*>/gi," ").replace(/<[^>]*>/g," ")).replace(/\\s+/g," ").trim();
+  const publishedAt=tagText(b,"pubDate")||tagText(b,"published")||tagText(b,"updated")||tagText(b,"date")||tagText(b,"dc:date");
   const clean=cleanDomain(domain);
   return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,500),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
  }).filter((a):a is Article=>a!==null);
