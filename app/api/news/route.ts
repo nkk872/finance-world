@@ -128,8 +128,8 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  const response=await fetch(feedUrl,{headers:{Accept:"application/rss+xml, application/atom+xml, application/xml, text/xml","User-Agent":"FinanceWorld/1.0 (global financial news aggregator)"},cache:"no-store",signal:AbortSignal.timeout(5500)});
  if(!response.ok)throw new Error(provider+" feed failed: "+response.status);
  const xml=await response.text();
- const rssItems=xml.match(/<item[^>]*>[\s\S]*?<\/item\s*>/gi)??[];
- const atomItems=xml.match(/<entry[^>]*>[\s\S]*?<\/entry\s*>/gi)??[];
+ const rssItems=xml.match(/<(?:[\w.-]+:)?item\b[^>]*>[\s\S]*?<\/(?:[\w.-]+:)?item\s*>/gi)??[];
+ const atomItems=xml.match(/<(?:[\w.-]+:)?entry\b[^>]*>[\s\S]*?<\/(?:[\w.-]+:)?entry\s*>/gi)??[];
  const rdfItems=xml.match(/<rdf:Description[^>]*>[\s\S]*?<\/rdf:Description\s*>/gi)??[];
  const blocks=[...rssItems,...atomItems,...rdfItems].slice(0,35);
  const parsed=blocks.map((b):Article|null=>{
