@@ -20,13 +20,13 @@ function articleHref(a:Article){
  return "/article/"+encodeURIComponent(slug)+"?"+q.toString();
 }
 export default function Home(){
- const [articles,setArticles]=useState<Article[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(""),[category,setCategory]=useState("All"),[region,setRegion]=useState("All Regions"),[country,setCountry]=useState("All Countries"),[query,setQuery]=useState(""),[visibleCount,setVisibleCount]=useState(40),[searchArticles,setSearchArticles]=useState<Article[]>([]),[searchLoading,setSearchLoading]=useState(false),[searchError,setSearchError]=useState("");
+ const [articles,setArticles]=useState<Article[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(""),[category,setCategory]=useState("All"),[region,setRegion]=useState("All Regions"),[country,setCountry]=useState("All Countries"),[query,setQuery]=useState(""),[visibleCount,setVisibleCount]=useState(100),[searchArticles,setSearchArticles]=useState<Article[]>([]),[searchLoading,setSearchLoading]=useState(false),[searchError,setSearchError]=useState("");
  useEffect(()=>{let active=true;const load=async()=>{try{const res=await fetch("/api/news",{cache:"no-store"});const data=await res.json();if(!res.ok)throw new Error(data.error||"Financial news is temporarily unavailable.");if(active){setArticles(Array.isArray(data.articles)?data.articles:[]);setError("");}}catch(e){if(active)setError(e instanceof Error?e.message:"News feed unavailable.");}finally{if(active)setLoading(false);}};load();const timer=setInterval(load,10*60*1000);return()=>{active=false;clearInterval(timer);};},[]);
  useEffect(()=>{setSearchArticles([]);setSearchError("");setSearchLoading(false);},[query]);
  const localSearchArticles=useMemo(()=>{const term=query.trim().toLowerCase().replace(/s$/, "");return term.length<2?articles:articles.filter(a=>(a.title+" "+a.category+" "+a.summary+" "+(a.region||"")+" "+(a.country||"")).toLowerCase().includes(term));},[articles,query]);
  const activeArticles=query.trim().length>=2?(searchArticles.length?searchArticles:localSearchArticles):articles;
  const filtered=useMemo(()=>activeArticles.filter(a=>(category==="All"||a.category===category)&&(region==="All Regions"||a.region===region)&&(country==="All Countries"||a.country===country)),[activeArticles,category,region,country]);
- useEffect(()=>{setVisibleCount(40);},[category,region,country,query]);
+ useEffect(()=>{setVisibleCount(100);},[category,region,country,query]);
  const featured=filtered[0];
  return <>
   <div className="topline"><div className="container topline-inner"><span>GLOBAL FINANCE • BUSINESS • ECONOMY</span><span>Finance World • Independent financial coverage</span></div></div>
