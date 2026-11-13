@@ -70,7 +70,7 @@ function countryFor(domain:string,title:string):string{
  ["Ireland",["ireland","dublin"]],["Sweden",["sweden","stockholm"]],["Norway",["norway","oslo"]],
  ["Denmark",["denmark","copenhagen"]],["United States",["united states","u.s.","american","wall street","new york","federal reserve","sec.gov","federalreserve.gov"]],
  ["Canada",["canada","toronto","vancouver","bank of canada","ottawa"]],["Mexico",["mexico","mexican","mexico city","peso"]],["Costa Rica",["costa rica","san jose"]],["Panama",["panama","panama city"]],["Jamaica",["jamaica","kingston"]],
- ["Brazil",["brazil","brazilian","sao paulo","real"]],["Argentina",["argentina","buenos aires","peso argentino"]],["Colombia",["colombia","bogota","peso colombiano"]],["Peru",["peru","lima","sol peruano"]],["Chile",["chile","santiago","peso chileno"]],["Ecuador",["ecuador","quito"]],["Uruguay",["uruguay","montevideo"]],["Venezuela",["venezuela","caracas"]],
+ ["Brazil",["brazil","brazilian","sao paulo","real"]],["Paraguay",["paraguay","asuncion"]],["Argentina",["argentina","buenos aires","peso argentino"]],["Colombia",["colombia","bogota","peso colombiano"]],["Peru",["peru","lima","sol peruano"]],["Chile",["chile","santiago","peso chileno"]],["Ecuador",["ecuador","quito"]],["Uruguay",["uruguay","montevideo"]],["Venezuela",["venezuela","caracas"]],
  ["Chile",["chile","santiago"]],["Colombia",["colombia","bogota"]],["Peru",["peru","lima"]],
  ["United Arab Emirates",["uae","united arab emirates","dubai","abu dhabi"]],["Israel",["israel","tel aviv","shekel"]],["Jordan",["jordan","amman"]],["Oman",["oman","muscat"]],["Bahrain",["bahrain","manama"]],["Kuwait",["kuwait"]],["Nepal",["nepal","kathmandu"]],["Philippines",["philippines","manila","peso philippine"]],["Taiwan",["taiwan","taipei"]],["Myanmar",["myanmar","yangon"]],["Cambodia",["cambodia","phnom penh"]],["Laos",["laos","vientiane"]],
  ["Saudi Arabia",["saudi arabia","riyadh"]],["Qatar",["qatar","doha"]],["Türkiye",["turkey","turkish","istanbul","ankara"]]
@@ -115,7 +115,7 @@ function regionFor(domain:string,title:string):string{
  ["Africa",["Nigeria","Kenya","South Africa","Egypt","Ghana","Morocco","Ethiopia","Uganda","Tanzania","Rwanda","Zambia","Zimbabwe","Senegal","Ivory Coast","Botswana","Namibia","Tunisia","Algeria"]],
  ["Europe",["Germany","France","United Kingdom","Italy","Spain","Switzerland","Netherlands","Ireland","Sweden","Norway","Denmark","Austria","Belgium","Poland","Portugal","Greece","Finland","Czechia","Ukraine","Russia"]],
  ["North America",["United States","Canada","Mexico","Costa Rica","Panama","Jamaica"]],
- ["South America",["Brazil","Argentina","Chile","Colombia","Peru","Ecuador","Uruguay","Venezuela"]],
+ ["South America",["Brazil","Paraguay","Argentina","Chile","Colombia","Peru","Ecuador","Uruguay","Venezuela"]],
  ["Oceania",["Australia","New Zealand","Fiji","Papua New Guinea"]],
  ["Antarctica",["Antarctica"]]
  ];
@@ -150,7 +150,7 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
   const summary=tagText(b,"description")||tagText(b,"summary")||tagText(b,"content:encoded")||tagText(b,"content");
   const publishedAt=tagText(b,"pubDate")||tagText(b,"published")||tagText(b,"updated")||tagText(b,"date");
   const clean=cleanDomain(domain);
-  return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,500),category:categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
+  return {title,url,domain:clean,publishedAt,image:imageFrom(b),provider,summary:summary.slice(0,500),category:categoryFor(title)==="World Finance"&&/business|finance|markets|economy|banking|money/i.test(provider)?"Business":categoryFor(title),region:regionFor(clean,title),country:countryFor(clean,title)};
  }).filter((a):a is Article=>a!==null);
  if(!parsed.length){
   const contentType=response.headers.get("content-type")||"unknown";
@@ -264,7 +264,7 @@ export async function GET(){
   if(!a.url)return false;
   const title=a.title.toLowerCase();
   const withoutWestBank=title.replace(/\bwest bank\b/g," ");
-  if(!finance.test(withoutWestBank)&&!multilingualFinance.test(withoutWestBank))return false;
+  const curatedBusinessDesk=/business|finance|markets|economy|banking|money|market pulse/i.test(a.provider);\n  if(!finance.test(withoutWestBank)&&!multilingualFinance.test(withoutWestBank)&&!curatedBusinessDesk)return false;
   const alcoholContext=/\b(alcohol|liquor|beer|wine|spirits|tobacco|cigarette)\b/i.test(title);
   const clearFinance=/\b(stock|market|shares|revenue|profit|earnings|sales|investment|company|business|price|ipo|valuation|dividend)\b/i.test(title);
   if(alcoholContext&&!clearFinance)return false;
