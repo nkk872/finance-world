@@ -53,7 +53,8 @@ function countryFor(domain:string,title:string):string{
  ["Indonesia",["indonesia","jakarta","rupiah"]],["Malaysia",["malaysia","kuala lumpur","ringgit"]],
  ["Thailand",["thailand","bangkok","baht"]],["Vietnam",["vietnam","dong"]],
  ["Pakistan",["pakistan","karachi","islamabad"]],["Bangladesh",["bangladesh","dhaka","taka"]],
- ["Sri Lanka",["sri lanka","colombo"]],["Australia",["australia","australian","sydney","melbourne","canberra","perth","brisbane"]],
+ ["Sri Lanka",["sri lanka","colombo"]],["Antarctica",["antarctica","antarctic","south pole"]],
+ ["Australia",["australia","australian","sydney","melbourne","canberra","perth","brisbane"]],
  ["New Zealand",["new zealand","auckland","wellington","kiwi"]],
  ["Fiji",["fiji","suva"]],["Papua New Guinea",["papua new guinea","port moresby"]],
  ["Nigeria",["nigeria","lagos","naira"]],["Kenya",["kenya","nairobi","shilling"]],
@@ -115,7 +116,8 @@ function regionFor(domain:string,title:string):string{
  ["Europe",["Germany","France","United Kingdom","Italy","Spain","Switzerland","Netherlands","Ireland","Sweden","Norway","Denmark","Austria","Belgium","Poland","Portugal","Greece","Finland","Czechia","Ukraine","Russia"]],
  ["North America",["United States","Canada","Mexico","Costa Rica","Panama","Jamaica"]],
  ["South America",["Brazil","Argentina","Chile","Colombia","Peru","Ecuador","Uruguay","Venezuela"]],
- ["Oceania",["Australia","New Zealand"]]
+ ["Oceania",["Australia","New Zealand","Fiji","Papua New Guinea"]],
+ ["Antarctica",["Antarctica"]]
  ];
  for(const [region,countries] of areas)if(countries.includes(country))return region;
  const v=(title+" "+domain).toLowerCase();
