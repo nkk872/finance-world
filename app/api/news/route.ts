@@ -264,7 +264,7 @@ export async function GET(){
   if(!a.url)return false;
   const title=a.title.toLowerCase();
   const withoutWestBank=title.replace(/\bwest bank\b/g," ");
-  const curatedBusinessDesk=/business|finance|markets|economy|banking|money|market pulse/i.test(a.provider);
+  const curatedBusinessDesk=/^(ABC Australia Business|RNZ Business New Zealand|CNA Singapore Business|Euronews Business|The Guardian Business|DW Business|CNBC World Markets|CNBC Finance|CNBC Economy|Investing\\.com Economy|Investing\\.com Markets|Investing\\.com Crypto|MarketWatch Market Pulse)$/i.test(a.provider);
   if(!finance.test(withoutWestBank)&&!multilingualFinance.test(withoutWestBank)&&!curatedBusinessDesk)return false;
   const alcoholContext=/\b(alcohol|liquor|beer|wine|spirits|tobacco|cigarette)\b/i.test(title);
   const clearFinance=/\b(stock|market|shares|revenue|profit|earnings|sales|investment|company|business|price|ipo|valuation|dividend)\b/i.test(title);
