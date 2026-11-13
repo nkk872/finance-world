@@ -13,7 +13,8 @@ const REGION_CODES: Record<string, string[]> = {
   "Europe": "AD AL AT AX BA BE BG BY CH CY CZ DE DK EE ES FI FO FR GB GG GI GR HR HU IE IM IS IT JE LI LT LU LV MC MD ME MK MT NL NO PL PT RO RS RU SE SI SJ SK SM UA VA".split(" "),
   "North America": "AG AI AW BB BL BM BQ BS BZ CA CR CU CW DM DO GD GL GP GT HN HT JM KN KY LC MF MQ MS MX NI PA PM PR SV SX TC TT US VC VG VI".split(" "),
   "South America": "AR BO BR CL CO EC FK GF GY PE PY SR UY VE".split(" "),
-  "Oceania": "AS AU CC CK CX FJ FM GU HM KI MH MP NC NF NR NU NZ PF PG PN PW SB TK TL TO TV UM VU WF WS".split(" ")
+  "Oceania": "AS AU CC CK CX FJ FM GU HM KI MH MP NC NF NR NU NZ PF PG PN PW SB TK TL TO TV UM VU WF WS".split(" "),
+  "Antarctica": ["AQ"]
 };
 export function regionFromCountryCode(code?: string): string {
   if (!code) return "Global";
