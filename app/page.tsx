@@ -7,7 +7,7 @@ import { WORLD_COUNTRIES } from "../lib/countries";
 
 type Article = { title:string; url:string; domain:string; publishedAt:string; image:string|null; summary:string; category:string; provider:string; region?:string; country?:string };
 const categories=["All","World Finance","Economy","Banking","Markets","Business","Crypto","Forex","Commodities","Real Estate","Fintech"];
-const regions=["All Regions","Global","Asia","Africa","Europe","North America","South America","Oceania"];
+const regions=["All Regions","Global","Asia","Africa","Europe","North America","South America","Oceania","Antarctica"];
 const countries=["All Countries",...WORLD_COUNTRIES.map(country=>country.name)];
 function formatDate(value:string){if(!value)return "Recently";const d=new Date(value);return Number.isNaN(d.getTime())?value:d.toLocaleString("en",{dateStyle:"medium",timeStyle:"short",timeZone:"UTC"})+" UTC";}
 function categoryImage(category:string){
