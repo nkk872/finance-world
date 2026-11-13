@@ -110,11 +110,11 @@ function countryFor(domain:string,title:string):string{
 function regionFor(domain:string,title:string):string{
  const country=countryFor(domain,title);
  const areas:[string,string[]][]=[
- ["Asia",["India","China","Japan","South Korea","Singapore","Hong Kong","Indonesia","Malaysia","Thailand","Vietnam","Pakistan","Bangladesh","Sri Lanka","United Arab Emirates","Saudi Arabia","Qatar","Türkiye"]],
- ["Africa",["Nigeria","Kenya","South Africa","Egypt","Ghana","Morocco","Ethiopia"]],
- ["Europe",["Germany","France","United Kingdom","Italy","Spain","Switzerland","Netherlands","Ireland","Sweden","Norway","Denmark"]],
- ["North America",["United States","Canada","Mexico"]],
- ["South America",["Brazil","Argentina","Chile","Colombia","Peru"]],
+ ["Asia",["India","China","Japan","South Korea","Singapore","Hong Kong","Indonesia","Malaysia","Thailand","Vietnam","Pakistan","Bangladesh","Sri Lanka","United Arab Emirates","Saudi Arabia","Qatar","Türkiye","Israel","Jordan","Oman","Bahrain","Kuwait","Nepal","Philippines","Taiwan","Myanmar","Cambodia","Laos"]],
+ ["Africa",["Nigeria","Kenya","South Africa","Egypt","Ghana","Morocco","Ethiopia","Uganda","Tanzania","Rwanda","Zambia","Zimbabwe","Senegal","Ivory Coast","Botswana","Namibia","Tunisia","Algeria"]],
+ ["Europe",["Germany","France","United Kingdom","Italy","Spain","Switzerland","Netherlands","Ireland","Sweden","Norway","Denmark","Austria","Belgium","Poland","Portugal","Greece","Finland","Czechia","Ukraine","Russia"]],
+ ["North America",["United States","Canada","Mexico","Costa Rica","Panama","Jamaica"]],
+ ["South America",["Brazil","Argentina","Chile","Colombia","Peru","Ecuador","Uruguay","Venezuela"]],
  ["Oceania",["Australia","New Zealand"]]
  ];
  for(const [region,countries] of areas)if(countries.includes(country))return region;
