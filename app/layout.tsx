@@ -6,6 +6,7 @@ export const metadata: Metadata = {
   title: "Finance World — Your World. Your Markets. Your Money.",
   description: "Global markets, business, economy and finance news with clear context and trusted sources.",
   keywords: ["finance news", "global markets", "business news", "economy", "investing"],
+  icons: { icon: "/finance-world-icon.svg", shortcut: "/finance-world-icon.svg" },
   openGraph: { title: "Finance World", description: "Your World. Your Markets. Your Money.", type: "website" }
 };
 
