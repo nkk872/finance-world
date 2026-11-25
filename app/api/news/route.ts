@@ -168,13 +168,13 @@ async function fromGdelt():Promise<Article[]>{
  url.searchParams.set("timespan","24h");
  url.searchParams.set("maxrecords","250");
  url.searchParams.set("sort","DateDesc");
- const response=await fetch(url.toString(),{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0 global financial news"},cache:"no-store",signal:AbortSignal.timeout(9000)});
+ const response=await fetch(url.toString(),{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0 global financial news"},cache:"no-store",signal:AbortSignal.timeout(14000)});
  if(!response.ok)throw new Error("GDELT request failed: "+response.status);
  const data=await response.json() as {articles?:Array<{title?:string;url?:string;domain?:string;seendate?:string;language?:string}>};
  return (data.articles??[]).flatMap((item):Article[]=>{
   if(!item.title||!item.url)return [];
   let publishedAt="";
-  if(item.seendate){const match=item.seendate.match(/^(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})Z$/);publishedAt=match?new Date(Date.UTC(+match[1],+match[2]-1,+match[3],+match[4],+match[5],+match[6])).toISOString():item.seendate;}
+  if(item.seendate){const stamp=item.seendate;const match=stamp.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/);publishedAt=match?new Date(Date.UTC(+match[1],+match[2]-1,+match[3],+match[4],+match[5],+match[6])).toISOString():item.seendate;}
   let domain=item.domain??"";try{domain=cleanDomain(new URL(item.url).hostname);}catch{}
   return [{title:item.title,url:item.url,domain,publishedAt,image:null,provider:"GDELT Global News",summary:"",category:categoryFor(item.title),region:regionFor(domain,item.title),country:countryFor(domain,item.title)}];
  });
