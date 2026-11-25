@@ -54,3 +54,5 @@
 
 .market-extra-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:24px;padding-top:22px;border-top:1px solid var(--line)}
 @media(max-width:700px){.market-extra-grid{grid-template-columns:1fr;gap:17px}}
+
+.brand-logo{display:inline-flex;align-items:center;line-height:0;flex-shrink:0}.brand-logo img{display:block;width:226px;height:auto;max-width:100%}.footer-logo img{filter:none}@media(max-width:600px){.brand-logo img{width:190px}}
