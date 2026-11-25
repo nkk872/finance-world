@@ -159,6 +159,26 @@ async function fromRss(feedUrl:string,provider:string):Promise<Article[]>{
  }
  return parsed;
 }
+async function fromGdelt():Promise<Article[]>{
+ const query='(finance OR financial OR markets OR stocks OR banking OR economy OR inflation OR currency OR forex OR crypto OR bitcoin OR earnings OR commodities OR oil OR gold OR bonds OR investment OR trade OR business OR central bank)';
+ const url=new URL("https://api.gdeltproject.org/api/v2/doc/doc");
+ url.searchParams.set("query",query);
+ url.searchParams.set("mode","ArtList");
+ url.searchParams.set("format","json");
+ url.searchParams.set("timespan","24h");
+ url.searchParams.set("maxrecords","250");
+ url.searchParams.set("sort","DateDesc");
+ const response=await fetch(url.toString(),{headers:{Accept:"application/json","User-Agent":"FinanceWorld/1.0 global financial news"},cache:"no-store",signal:AbortSignal.timeout(9000)});
+ if(!response.ok)throw new Error("GDELT request failed: "+response.status);
+ const data=await response.json() as {articles?:Array<{title?:string;url?:string;domain?:string;seendate?:string;language?:string}>};
+ return (data.articles??[]).flatMap((item):Article[]=>{
+  if(!item.title||!item.url)return [];
+  let publishedAt="";
+  if(item.seendate){const match=item.seendate.match(/^(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})Z$/);publishedAt=match?new Date(Date.UTC(+match[1],+match[2]-1,+match[3],+match[4],+match[5],+match[6])).toISOString():item.seendate;}
+  let domain=item.domain??"";try{domain=cleanDomain(new URL(item.url).hostname);}catch{}
+  return [{title:item.title,url:item.url,domain,publishedAt,image:null,provider:"GDELT Global News",summary:"",category:categoryFor(item.title),region:regionFor(domain,item.title),country:countryFor(domain,item.title)}];
+ });
+}
 const finance=/\b(financ|market|stock|shares|bank|econom|inflation|interest rate|bond|currency|forex|crypto|bitcoin|ethereum|invest|earnings|revenue|profit|ipo|treasury|monetary|fiscal|securities|fund|trading|gdp|central bank|credit|loan|mortgage|insurance|commodity|oil price|gold price|fintech|real estate|property|trade|tariff)\b/i;
 const multilingualFinance=/经济|市场|股票|股市|银行|投资|通胀|财报|企业|贸易|利率|货币|债券|経済|市場|株式|銀行|投資|インフレ|企業|利益|為替|貿易|金利|경제|시장|주식|은행|투자|물가|기업|수익|환율|무역|금리|اقتصاد|سوق|أسهم|بنك|استثمار|تضخم|شركة|أرباح|عملة|تجارة|فائدة|سندات|econom[ií]a|mercado|acciones|banco|inversi[oó]n|inflaci[oó]n|empresa|beneficio|ganancias|bolsa|divisa|deuda|economia|ações|investimento|inflação|lucro|receita|câmbio|juros|dívida|économie|marché|banque|investissement|bénéfice|bourse|taux|dette|wirtschaft|markt|aktien|investition|unternehmen|gewinn|umsatz|börse|zinsen|schulden/i;
 const sources=[
@@ -253,13 +273,17 @@ const sources=[
  ["https://www.bnamericas.com/en/rss","BNamericas"]
 ] as const;
 
-export const maxDuration = 10;
+export const maxDuration = 25;
 
 export async function GET(){
  const tasks=sources.map(([url,name])=>fromRss(url,name));
- const results=await Promise.allSettled(tasks);
- const articles=results.flatMap(r=>r.status==="fulfilled"?r.value:[]);
- const cutoff=Date.now()-30*24*60*60*1000;
+ const [rssResults,gdeltResult]=await Promise.all([
+  Promise.allSettled(tasks),
+  fromGdelt().then(value=>({status:"fulfilled" as const,value})).catch(reason=>({status:"rejected" as const,reason}))
+ ]);
+ const results=rssResults;
+ const articles=[...results.flatMap(r=>r.status==="fulfilled"?r.value:[]),...(gdeltResult.status==="fulfilled"?gdeltResult.value:[])];
+ const cutoff=Date.now()-24*60*60*1000;
  const unique=Array.from(new Map(articles.filter(a=>{
   if(!a.url)return false;
   const title=a.title.toLowerCase();
@@ -279,13 +303,13 @@ export async function GET(){
   articles:unique,
   updatedAt:new Date().toISOString(),
   providers,
-  sourceStatus:sources.map(([,name],i)=>({
+  sourceStatus:[...sources.map(([,name],i)=>({
     provider:name,
     status:results[i]?.status==="fulfilled"?"ok":"unavailable",
     itemsReceived:results[i]?.status==="fulfilled"?results[i].value.length:0,
     financialStories:unique.filter(article=>article.provider===name).length,
     error:results[i]?.status==="rejected"?String(results[i].reason?.message??"").slice(0,120):undefined
-  })),
-  gdeltStatus:{status:"temporarily_disabled",reason:"GDELT requests timed out from this deployment; live RSS publishers remain active."}
+  })),{provider:"GDELT Global News",status:gdeltResult.status==="fulfilled"?"ok":"unavailable",itemsReceived:gdeltResult.status==="fulfilled"?gdeltResult.value.length:0,financialStories:unique.filter(article=>article.provider==="GDELT Global News").length,error:gdeltResult.status==="rejected"?String(gdeltResult.reason?.message??"").slice(0,120):undefined}],
+  gdeltStatus:gdeltResult.status==="fulfilled"?{status:"ok",itemsReceived:gdeltResult.value.length}:{status:"unavailable",error:String(gdeltResult.reason?.message??"").slice(0,160)}
 },{headers:{"Cache-Control":"s-maxage=600, stale-while-revalidate=1800"}});
 }
